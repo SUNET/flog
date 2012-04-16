@@ -13,7 +13,7 @@ def by_rp(request,pk):
     entity = get_object_or_404(Entity,pk=pk)
     cross_type = 'origin'
     
-    h = Entity.objects.filter(origin_events__rp=entity).annotate(count=Count('origin_events__id')).filter(count__gt=5).order_by('-count')
+    h = Entity.objects.filter(origin_events__rp=entity).annotate(count=Count('origin_events__id')).order_by('-count')
     return respond_to(request, {'text/html': 'apps/event/histogram.html'}, 
                       {'entity':entity, 'histogram': h,'cross_type': cross_type,'threshold': 0.05})
 
@@ -21,7 +21,7 @@ def by_origin(request,pk):
     entity = get_object_or_404(Entity,pk=pk)
     cross_type = 'rp'
     
-    h = Entity.objects.filter(rp_events__origin=entity).annotate(count=Count('rp_events__id')).filter(count__gt=5).order_by('-count')
+    h = Entity.objects.filter(rp_events__origin=entity).annotate(count=Count('rp_events__id')).order_by('-count')
     return respond_to(request, {'text/html': 'apps/event/histogram.html'}, 
                       {'entity':entity, 'histogram': h,'cross_type': cross_type,'threshold': 0.05})
     

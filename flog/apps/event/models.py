@@ -29,9 +29,6 @@ class Event(models.Model):
     WAYF = 1
     Discovery = 2
     
-    class Meta:
-        unique_together = ('ts','origin','rp','protocol')
-    
     def __unicode__(self):
         return "%s;%s;%s;%s;%s" % (self.ts,self.protocol,self.principal,self.origin,self.rp)
 
@@ -82,6 +79,7 @@ def import_events(lines):
                     rp.is_rp = True
                     rp.save()
                 cache[rp_uri] = rp
+            rp = cache[rp_uri]
             
             if not cache.has_key(origin_uri):
                 origin,created = Entity.objects.get_or_create(uri=origin_uri)
@@ -89,11 +87,14 @@ def import_events(lines):
                     origin.is_idp = True
                     origin.save()
                 cache[origin_uri] = origin
+            origin = cache[origin_uri]
                 
             lst.append(Event(ts=ts,origin=origin,rp=rp,protocol=p,principal=principal))
         except Exception,exc:
             logging.error(exc)
-    Event.objects.bulk_create(lst)
+    
+    if len(lst) > 0:
+        Event.objects.bulk_create(lst)
 
 def import_event(line,cache={}):
     (ts,protocol,rp_uri,origin_uri,principal) = line.split(';')
