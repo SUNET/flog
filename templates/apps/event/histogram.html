@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block js %}
+<script type="text/javascript">
+$(function() {
+var data = [
+{% for e in histogram %}
+   { label: "{{e}}", data: {{e.count}} }, 
+{% endfor %}
+];
+$.plot($("#pie"),data,
+{
+   series: { 
+	    pie: { 
+	    	show: true,
+	    	combine: {
+			    color: '#999',
+			    threshold: {{threshold}}
+			}
+		}, 
+   },
+   grid: {
+       hoverable: true,
+       clickable: true
+   }
+   
+})
+});
+</script>
+{% endblock %}
+{% block main %}
+<h1>Stats for {{entity}}</h1>
+<div class="left">
+<table>
+{% for e in histogram %}
+   <tr>
+   	<td>{{e.count}}</td>
+   	<td><a href="/event/{{cross_type}}/{{e.id}}">{{e}}</a></td>
+   </tr>
+{% endfor %}
+</table>
+</div>
+<div>
+<div id="pie" class="graph"/>
+</div>
+{% endblock %}

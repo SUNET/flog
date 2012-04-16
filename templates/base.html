@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
+<head>
+        <title>SWAMID Statistics</title>
+        <link type="text/css" href="/site-media/css/ui-lightness/jquery-ui-1.8.18.custom.css" rel="stylesheet" />
+        <link type="text/css" href="/site-media/css/flog-style.css" rel="stylesheet"/>
+        <script type="text/javascript" src="/site-media/js/jquery-1.7.1.min.js"></script>
+        <script type="text/javascript" src="/site-media/js/jquery-ui-1.8.18.custom.min.js"></script>
+        <script type="text/javascript" src="/site-media/js/bbq.js"></script>
+        <script type="text/javascript" src="/site-media/js/jquery.flot.min.js"></script>
+        <script type="text/javascript" src="/site-media/js/jquery.flot.pie.min.js"></script>
+        {% block js %}{% endblock %}
+</head>
+<body>
+<div id="container">
+	<div id="header">
+		
+	</div>
+	<div id="content">
+	    {% block main %}{% endblock %}
+	</div>
+	<div class="clear"></div>
+	<div id="footer">
+	</div>
+</div>
+</body>
+</html>
