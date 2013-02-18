@@ -21,7 +21,7 @@ def by_origin(request,pk):
     entity = get_object_or_404(Entity,pk=pk)
     cross_type = 'rp'
     
-    h = Entity.objects.filter(rp_events__origin=entity).annotate(count=Count('rp_events__id')).order_by('-count')
+    h = Entity.objects.filter(rp_events__origin=entity).annotate(count=Count('rp_events__id'),).order_by('-count')
     return respond_to(request, {'text/html': 'apps/event/histogram.html'}, 
                       {'entity':entity, 'histogram': h,'cross_type': cross_type,'threshold': 0.05})
     
