@@ -1,6 +1,5 @@
 # Django settings for flog project.
 
-import flog.site_logging
 import os
 
 DEBUG = True
