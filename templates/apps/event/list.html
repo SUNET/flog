@@ -1,22 +1,23 @@
 {% extends "base.html" %}
 {% block main %}
-<div>
-    <h1>SWAMID Statistics</h1>
-	<div style="padding-right: 50px; vertical-align: top;" class="left">
-	<h2>Identity Providers</h2>
-	<ul>
-	{% for idp in idps %}
-	   <li><a href="/event/origin/{{idp.id}}">{{idp}}</a></li>
-	{% endfor %}
-	</ul>
-	</div>
-    <div style="vertical-align: top;">
-	<h2>Relying Parties</h2>
-	<ul>
-	{% for rp in rps %}
-	   <li><a href="/event/rp/{{rp.id}}">{{rp}}</a></li>
-	{% endfor %}
-	</ul>
-	</div>
-</div>
+    <h3>SWAMID Statistics</h3>
+	<!--<div style="padding-right: 50px; vertical-align: top;" class="left">-->
+    <div class="row">
+        <div class="span4">
+            <h4>Identity Providers</h4>
+            <ul class="unstyled">
+                {% for idp in idps %}
+                    <li><a href="/event/origin/{{idp.id}}">{{idp}}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="span4">
+            <h4>Relying Parties</h4>
+            <ul class="unstyled">
+                {% for rp in rps %}
+                    <li><a href="/event/rp/{{rp.id}}">{{rp}}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 {% endblock %}

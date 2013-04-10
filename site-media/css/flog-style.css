@@ -1,3 +1,4 @@
+/*
 html,body { font-size: 80%; font-family: Verdana, Geneva, Arial, Helvetica, sans-serif; margin:0; padding:0;}
 body { min-width: 800px; width: 100%; }
 #container { position: relative; height:auto !important; height: 100%; min-height: 100%; margin-left: 0px; margin-top: 0; }
@@ -73,9 +74,27 @@ h2, h2 a {
 #left, #main { vertical-align: top; display: inline-block; }
 #left { width: 250px; padding-right: 20px;}
 #main { width: 60%; }
+*/
+
+h3, h3 a {
+    color: #E37424;
+    font-size: 220%;
+}
+h4, h4 a {
+    color: #E37424;
+    font-size: 150%
+}
+
+a, a:hover, a:visited {
+    color: #E37424;
+}
+
+div.rangeslider {
+    padding-top: 60px;
+    padding-bottom: 50px;
+}
 
 div.graph {
 	width: 600px;
     height: 300px;
-    float: left;
 }
