@@ -3,13 +3,13 @@ Created on Apr 13, 2012
 
 @author: leifj
 """
-from datetime import datetime, timedelta
+
+from datetime import datetime
 import json
 from flog.apps.event.models import Entity, Event
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponse
 from django.db.models.aggregates import Count
-from flog.multiresponse import respond_to, json_response
 
 
 def by_rp(request, pk):
@@ -26,8 +26,8 @@ def by_rp(request, pk):
             data.append({'label': str(e), 'data': e.count, 'id': e.id})
         return HttpResponse(json.dumps(data), content_type="application/json")
 
-    return respond_to(request, {'text/html': 'apps/event/piechart.html'},
-                      {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
+    return render_to_response('apps/event/piechart.html',
+                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
 
 
 def by_origin(request, pk):
@@ -44,11 +44,11 @@ def by_origin(request, pk):
             data.append({'label': str(e), 'data': e.count, 'id': e.id})
         return HttpResponse(json.dumps(data), content_type="application/json")
 
-    return respond_to(request, {'text/html': 'apps/event/piechart.html'},
-                      {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
+    return render_to_response('apps/event/piechart.html',
+                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
 
 
 def entities(request):
     idp = Entity.objects.filter(is_idp=True).all()
     rp = Entity.objects.filter(is_rp=True).all()
-    return respond_to(request,{'text/html': 'apps/event/list.html'},{'rps':rp.all(),'idps':idp.all()})
+    return render_to_response('apps/event/list.html', {'rps':rp.all(),'idps':idp.all()})

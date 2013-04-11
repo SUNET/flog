@@ -1,19 +1,46 @@
 {% extends "base.html" %}
 {% block js %}
-<!--<script type="text/javascript" src="/site-media/js/bbq.js"></script>-->
-<script type="text/javascript" src="/site-media/js/jquery.flot.min.js"></script>
-<script type="text/javascript" src="/site-media/js/jquery.flot.pie.min.js"></script>
-<script type="text/javascript" src="/site-media/js/jquery.mousewheel.min.js"></script>
+<script type="text/javascript" src="/site-media/js/spin/spin.min.js"></script>
+<script type="text/javascript" src="/site-media/js/jquery/jquery.spin.js"></script>
+<script type="text/javascript" src="/site-media/js/jquery/jquery.flot.min.js"></script>
+<script type="text/javascript" src="/site-media/js/jquery/jquery.flot.pie.min.js"></script>
 <script type="text/javascript">
+function waitingFor(target, waiting) {
+    var opts = {
+        lines: 13, // The number of lines to draw
+        length: 20, // The length of each line
+        width: 10, // The line thickness
+        radius: 30, // The radius of the inner circle
+        corners: 1, // Corner roundness (0..1)
+        rotate: 0, // The rotation offset
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#000', // #rgb or #rrggbb
+        speed: 1, // Rounds per second
+        trail: 60, // Afterglow percentage
+        shadow: false, // Whether to render a shadow
+        hwaccel: false, // Whether to use hardware acceleration
+        className: 'spinner', // The CSS class to assign to the spinner
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        top: 'auto', // Top position relative to parent in px
+        left: 'auto' // Left position relative to parent in px
+    };
+    if (waiting) {
+        target.spin(opts);
+    } else {
+        target.spin(false);
+    }
+}
 function getData(dateValues) {
-    $.post("{{ entity.id }}", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
-        console.log(data);
+    waitingFor($("#data-display"), true);
+    $.post(".", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
+        waitingFor($("#data-display"), false);
         if (data.length > 0) {
+            var pie = $("#pie");
             $("#no-data").toggle(false);
-            $("#pie").toggle(true);
+            pie.toggle(true);
             $("#data-table").toggle(true);
             // Chart
-            $.plot($("#pie"),data,
+            $.plot(pie,data,
                 {
                     series: {
                         pie: {
@@ -42,6 +69,7 @@ function getData(dateValues) {
     }, "json");
 }
 $(document).ready(function() {
+    $("#no-data").toggle(false);
     $("#pie").toggle(false);
     $("#data-table").toggle(false);
     // Slider
@@ -54,7 +82,8 @@ $(document).ready(function() {
         defaultValues:{
             min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-15),
             max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
-        }
+        },
+        wheelMode: "scroll"
     };
     var slider = $("#dates");
     slider.dateRangeSlider(slider_opt);
