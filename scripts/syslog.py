@@ -39,10 +39,14 @@ def batch_importer(f, url):
 
 
 def single_importer(f, url):
-    for line in f:
-        m = p.search(line)
-        if m:
-            post_data(url, format_data(m) + '\n')
+    try:
+        for line in f:
+            m = p.search(line)
+            if m:
+                post_data(url, format_data(m) + '\n')
+    except KeyboardInterrupt:
+        sys.exit(0)
+
 
 def main():
     # User friendly usage output
@@ -55,7 +59,7 @@ def main():
     if args.batch:
         print batch_importer(args.infile, args.url)
     else:
-        print single_importer(args.infile, args.url)
+        single_importer(args.infile, args.url)
 
     sys.exit(0)
 
