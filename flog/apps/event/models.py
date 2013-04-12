@@ -22,12 +22,13 @@ class Event(models.Model):
     ts = DateTimeField()
     origin = ForeignKey(Entity,related_name='origin_events')
     rp = ForeignKey(Entity,related_name='rp_events')
-    protocol = SmallIntegerField(choices=((0,'Unknown'),(1,'WAYF'),(2,'Discovery')))
+    protocol = SmallIntegerField(choices=((0,'Unknown'),(1,'WAYF'),(2,'Discovery'),(3,'SAML2')))
     principal = CharField(max_length=128,null=True,blank=True)
     
     Unknown = 0
     WAYF = 1
     Discovery = 2
+    SAML2 = 3
     
     def __unicode__(self):
         return "%s;%s;%s;%s;%s" % (self.ts,self.protocol,self.principal,self.origin,self.rp)
