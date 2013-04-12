@@ -107,8 +107,8 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.admin',
     'django.contrib.humanize',
-    'django_extensions',
-    'django_oauth2_lite',
+    #'django_extensions',
+    #'django_oauth2_lite',
     'flog.apps.api',
     'flog.apps.event',
 )
