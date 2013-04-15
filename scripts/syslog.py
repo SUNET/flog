@@ -5,7 +5,9 @@ import sys
 import dateutil.parser
 
 
-p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
+#p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
+# Takes extra whitespace in RP until the F-TICKS bug gets fixed
+p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-\ ]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
 
 
 def post_data(url, data):
@@ -26,7 +28,8 @@ def format_data(m):
         m.group('ap'),
         m.group('pn')
     ]
-    return ';'.join(data)
+    #return ';'.join(data)
+    return ''.join(';'.join(data).split())  # Hack until extra whitespace bug in F-TICKS get fixed.
 
 
 def batch_importer(f, url):
@@ -51,15 +54,16 @@ def single_importer(f, url):
 def main():
     # User friendly usage output
     parser = argparse.ArgumentParser()
-    parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    parser.add_argument('infiles', nargs='*', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('-u', '--url', help='URL for flog import', required=True, type=str)
     parser.add_argument('-b', '--batch', help='Parse whole files and bulk send to import', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.batch:
-        print batch_importer(args.infile, args.url)
+        for f in args.infiles:
+            print batch_importer(f, args.url)
     else:
-        single_importer(args.infile, args.url)
+        single_importer(args.infiles[0], args.url)
 
     sys.exit(0)
 
