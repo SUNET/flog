@@ -24,12 +24,11 @@ def format_data(m):
     data = [
         format_timestamp(m.group('ts')),
         'SAML2',
-        m.group('rp'),
+        ''.join(m.group('rp').split()),  # Hack until extra whitespace bug in F-TICKS get fixed.
         m.group('ap'),
         m.group('pn')
     ]
-    #return ';'.join(data)
-    return ''.join(';'.join(data).split())  # Hack until extra whitespace bug in F-TICKS get fixed.
+    return ';'.join(data)
 
 
 def batch_importer(f, url):
