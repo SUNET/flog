@@ -62,7 +62,7 @@ def main():
         for f in args.infiles:
             print batch_importer(f, args.url)
     else:
-        single_importer(args.infiles[0], args.url)
+        single_importer(args.infiles, args.url)
 
     sys.exit(0)
 
