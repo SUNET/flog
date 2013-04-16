@@ -5,7 +5,6 @@ import sys
 import dateutil.parser
 import daemon
 
-
 #p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
 # Takes extra whitespace in RP until the F-TICKS bug gets fixed
 p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-\ ]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
@@ -46,14 +45,7 @@ def single_importer(f, url):
         for line in f:
             m = p.search(line)
             if m:
-                post_data(url, format_data(m) + '\n')
-    except KeyboardInterrupt as e:
-        raise e
-
-def bogus_single_importer(f, url):
-    try:
-        for line in f:
-            print line
+                print post_data(url, format_data(m) + '\n')
     except KeyboardInterrupt as e:
         raise e
 
@@ -68,6 +60,8 @@ def main():
     parser.add_argument('-d', '--daemon', help='Run in daemon mode and read from named pipe [PIPE]', default=False,
                         action='store_true')
     parser.add_argument('-p', '--pipe', type=str)
+    parser.add_argument('-f', '--foreground', help='Run daemon in foreground', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     try:
@@ -76,8 +70,25 @@ def main():
             for f in args.infiles:
                 print batch_importer(f, args.url)
         elif args.daemon:
+            # Starts the daemon reading the named pipe, posts every found line to URL
             if not args.pipe:
                 print 'Please set a path to the pipe using --pipe.'
+                sys.exit(0)
+            context = daemon.DaemonContext(working_directory='/tmp')
+            if args.foreground:
+                context.detach_process = False
+                context.stdout = sys.stdout
+                context.stderr = sys.stderr
+            with context:
+                if args.foreground:
+                    print 'Reading from %s...' % args.pipe
+                while True:
+                    try:
+                        f = open(args.pipe)
+                        single_importer(f, args.url)
+                    except IOError as e:
+                        if args.foreground:
+                            print e
         else:
             # Read from stdin and post every found line to URL
             single_importer(args.infiles, args.url)
