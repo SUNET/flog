@@ -6,13 +6,25 @@ import dateutil.parser
 import daemon
 
 #p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
-# Takes extra whitespace in RP until the F-TICKS bug gets fixed
-p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-\ ]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
+
+p = re.compile(r'''
+                F-TICKS/
+                (?P<federation>[\w]+)/
+                (?P<version>[\d+][\.]?[\d]*)
+                \#TS=(?P<ts>[\w]+)
+                \#RP=(?P<rp>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in RP until the F-TICKS bug gets fixed
+                \#AP=(?P<ap>[\w/:_@\.\?\-]+)
+                \#PN=(?P<pn>[\w]+)
+                \#AM=(?P<am>[\w:\.]*)
+                ''', re.VERBOSE)
 
 
 def post_data(url, data):
-    r = urllib.urlopen(url, data)
-    return r.read()
+    try:
+        r = urllib.urlopen(url, data)
+        return r.read()
+    except IOError as e:
+        print e
 
 
 def format_timestamp(ts):
@@ -37,7 +49,11 @@ def batch_importer(f, url):
         m = p.search(line)
         if m:
             batch.append(format_data(m))
-    return post_data(url, '\n'.join(batch))
+        if len(batch) > 1000:  # Approx. 300kb in file size
+            print post_data(url, '\n'.join(batch))
+            batch = []
+    post_data(url, '\n'.join(batch))
+    return True
 
 
 def single_importer(f, url):
@@ -68,7 +84,7 @@ def main():
         if args.batch:
             # Open files and post all found F-TICKS lines to URL
             for f in args.infiles:
-                print batch_importer(f, args.url)
+                batch_importer(f, args.url)
         elif args.daemon:
             # Starts the daemon reading the named pipe, posts every found line to URL
             if not args.pipe:

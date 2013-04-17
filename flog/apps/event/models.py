@@ -11,6 +11,10 @@ from django.db.models.fields.related import ForeignKey
 import logging
 
 class Entity(models.Model):
+
+    class Meta:
+        ordering = ['uri']
+
     uri = URLField(unique=True)
     is_idp = BooleanField(default=False)
     is_rp = BooleanField(default=False)
