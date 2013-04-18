@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block js %}
+{% load staticfiles %}
+<script type="text/javascript" src="{% static "js/spin/spin.min.js" %}"></script>
+<script type="text/javascript" src="{% static "js/jquery/jquery.spin.js" %}"></script>
+<script type="text/javascript" src="{% static "js/jquery/jquery.flot.min.js" %}"></script>
+<script type="text/javascript" src="{% static "js/jquery/jquery.flot.pie.min.js" %}"></script>
+<script type="text/javascript">
+function waitingFor(target, waiting) {
+    var opts = {
+        lines: 13, // The number of lines to draw
+        length: 20, // The length of each line
+        width: 10, // The line thickness
+        radius: 30, // The radius of the inner circle
+        corners: 1, // Corner roundness (0..1)
+        rotate: 0, // The rotation offset
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#000', // #rgb or #rrggbb
+        speed: 1, // Rounds per second
+        trail: 60, // Afterglow percentage
+        shadow: false, // Whether to render a shadow
+        hwaccel: false, // Whether to use hardware acceleration
+        className: 'spinner', // The CSS class to assign to the spinner
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        top: 'auto', // Top position relative to parent in px
+        left: 'auto' // Left position relative to parent in px
+    };
+    if (waiting) {
+        target.spin(opts);
+    } else {
+        target.spin(false);
+    }
+}
+function getData(dateValues) {
+    waitingFor($("#data-display"), true);
+    $.post(".", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
+        waitingFor($("#data-display"), false);
+        if (data.length > 0) {
+            var pie = $("#pie");
+            $("#no-data").toggle(false);
+            pie.toggle(true);
+            $("#data-table").toggle(true);
+            // Chart
+            $.plot(pie,data,
+                {
+                    series: {
+                        pie: {
+                            show: true,
+                            combine: {
+                                color: '#999',
+                                threshold: {{threshold}}
+                            }
+                        }
+                    },
+                    grid: {
+                        hoverable: true,
+                        clickable: true
+                    }
+                });
+            // Table
+            $("#data-table tbody tr").remove();
+            $.each(data, function(index, item) {
+                $('#data-table > tbody:last').append('<tr><td>' + item.data +'</td><td><a href="/event/{{cross_type}}/' + item.id + '">' + item.label + '</a></td></tr>');
+            });
+        } else {
+            $("#no-data").toggle(true);
+            $("#pie").toggle(false);
+            $("#data-table").toggle(false);
+        }
+    }, "json");
+}
+$(document).ready(function() {
+    $("#no-data").toggle(false);
+    $("#pie").toggle(false);
+    $("#data-table").toggle(false);
+    // Slider
+    today = new Date();
+    slider_opt = {
+        bounds:{
+            min: new Date(2012, 0, 1),
+            max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+        },
+        defaultValues:{
+            min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-15),
+            max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+        },
+        wheelMode: "scroll"
+    };
+    var slider = $("#dates");
+    slider.dateRangeSlider(slider_opt);
+    slider.bind("valuesChanged", function(e, data){
+        getData($("#dates").dateRangeSlider("values"));
+    });
+});
+</script>
+{% endblock %}
+{% block main %}
+<div class="page-header">
+    <h3>Stats for {{entity}}</h3>
+</div>
+<div class="rangeslider">
+    <div id="dates"></div>
+</div>
+<div id="no-data" class="alert alert-error">
+    No data for that time range.
+</div>
+<div id="data-display" class="row">
+    <div class="span5">
+        <table id="data-table" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Count</th>
+                    {% if cross_type == "rp" %}
+                        <th>Relying Party</th>
+                    {% elif cross_type == "origin" %}
+                        <th>Identity Provider</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="span6 offset1">
+        <div>
+            <div id="pie" class="graph"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

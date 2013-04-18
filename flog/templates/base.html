@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>SWAMID Statistics {% block title %}{% endblock %}</title>
+        {% load staticfiles %}
+        <link type="text/css" href="{% static "css/bootstrap/bootstrap.min.css" %}" rel="stylesheet" />
+        <link type="text/css" href="{% static "css/bootstrap/bootstrap-responsive.min.css" %}" rel="stylesheet" />
+        <link type="text/css" href="{% static "css/ui-lightness/jquery-ui-1.8.18.custom.css" %}" rel="stylesheet" />
+        <link type="text/css" href="{% static "css/iThing-min.css" %}" rel="stylesheet"/>
+        <link type="text/css" href="{% static "css/flog-style.css" %}" rel="stylesheet"/>
+        <script type="text/javascript" src="{% static "js/jquery/jquery-1.7.1.min.js" %}"></script>
+        <script type="text/javascript" src="{% static "js/jquery/jquery-ui-1.8.18.custom.min.js" %}"></script>
+        <script type="text/javascript" src="{% static "js/jquery/jquery.mousewheel.min.js" %}"></script>
+        <script type="text/javascript" src="{% static "js/jquery/jQRangeSlider-min.js" %}"></script>
+        <script type="text/javascript" src="{% static "js/jquery/jQDateRangeSlider-min.js" %}"></script>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                // AJAX setup
+                function getCookie(name) {
+                    var cookieValue = null;
+                    if (document.cookie && document.cookie != '') {
+                        var cookies = document.cookie.split(';');
+                        for (var i = 0; i < cookies.length; i++) {
+                            var cookie = jQuery.trim(cookies[i]);
+                            // Does this cookie string begin with the name we want?
+                            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+                var csrftoken = getCookie('csrftoken');
+                function csrfSafeMethod(method) {
+                    // these HTTP methods do not require CSRF protection
+                    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+                }
+                $.ajaxSetup({
+                    crossDomain: false, // obviates need for sameOrigin test
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type)) {
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        }
+                    }
+                });
+            });
+        </script>
+        {% block js %}{% endblock %}
+    </head>
+    <body>
+    <div class="container">
+        <div id="header">
+            {% block header %}{% endblock %}
+        </div>
+        <div id="content">
+            {% block main %}{% endblock %}
+        </div>
+        <!--<div class="clear"></div>-->
+        <div id="footer">
+            {% block footer %}{% endblock %}
+        </div>
+    </div>
+    </body>
+</html>
