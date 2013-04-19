@@ -47,7 +47,7 @@ def format_timestamp(ts):
 def format_data(m):
     data = [
         format_timestamp(m.group('ts')),
-        3,                               # 0:'Unknown', 1:'WAYF', 2:'Discovery', 3:'SAML2'
+        '3',                             # 0:'Unknown', 1:'WAYF', 2:'Discovery', 3:'SAML2'
         ''.join(m.group('rp').split()),  # Hack until extra whitespace bug in F-TICKS get fixed.
         m.group('ap'),
         m.group('pn')
