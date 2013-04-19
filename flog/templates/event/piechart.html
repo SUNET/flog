@@ -6,6 +6,27 @@
 <script type="text/javascript" src="{% static "js/jquery/jquery.flot.min.js" %}"></script>
 <script type="text/javascript" src="{% static "js/jquery/jquery.flot.pie.min.js" %}"></script>
 <script type="text/javascript">
+    // AJAX setup
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    var csrftoken = getCookie('csrftoken');
+    function csrfSafeMethod(method) {
+        // these HTTP methods do not require CSRF protection
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
 function waitingFor(target, waiting) {
     var opts = {
         lines: 13, // The number of lines to draw
@@ -73,6 +94,14 @@ $(document).ready(function() {
     $("#no-data").toggle(false);
     $("#pie").toggle(false);
     $("#data-table").toggle(false);
+    $.ajaxSetup({
+        crossDomain: false, // obviates need for sameOrigin test
+        beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type)) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
     // Slider
     today = new Date();
     slider_opt = {
