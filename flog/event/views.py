@@ -9,9 +9,11 @@ import json
 from models import Entity, Event
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models.aggregates import Count
 
 
+@ensure_csrf_cookie
 def by_rp(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'origin'
@@ -31,6 +33,7 @@ def by_rp(request, pk):
                               context_instance=RequestContext(request))
 
 
+@ensure_csrf_cookie
 def by_origin(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'rp'
