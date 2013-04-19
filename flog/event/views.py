@@ -7,7 +7,7 @@ Created on Apr 13, 2012
 from datetime import datetime
 import json
 from models import Entity, Event
-from django.shortcuts import get_object_or_404, render_to_response
+from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.db.models.aggregates import Count
 
@@ -27,7 +27,8 @@ def by_rp(request, pk):
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
+                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
+                              context_instance=RequestContext(request))
 
 
 def by_origin(request, pk):
@@ -45,10 +46,13 @@ def by_origin(request, pk):
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05})
+                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
+                              context_instance=RequestContext(request))
 
 
 def entities(request):
     idp = Entity.objects.filter(is_idp=True).all()
     rp = Entity.objects.filter(is_rp=True).all()
-    return render_to_response('event/list.html', {'rps':rp.all(),'idps':idp.all()})
+    return render_to_response('event/list.html',
+                              {'rps':rp.all(),'idps':idp.all()},
+                              context_instance=RequestContext(request))
