@@ -3,7 +3,7 @@ import os
 # Django settings for flog project.
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.abspath(os.path.join(SRC_DIR, ''))
+BASE_DIR = os.path.abspath(os.path.join(SRC_DIR, '..'))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG

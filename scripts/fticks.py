@@ -74,7 +74,7 @@ def single_importer(f, url):
             m = p.search(line)
             if m:
                 print post_data(url, format_data(m) + '\n')
-    except KeyboardInterrupt as e:
+    except (KeyboardInterrupt, TypeError) as e:
         raise e
 
 
@@ -120,6 +120,9 @@ def main():
         else:
             # Read from stdin and post every found line to URL
             single_importer(args.infiles, args.url)
+    except TypeError as e:
+        print 'Input not as expected.'
+        print e
     except KeyboardInterrupt:
         sys.exit(0)
     sys.exit(0)
