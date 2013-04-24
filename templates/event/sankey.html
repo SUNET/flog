@@ -130,10 +130,9 @@
         }
     }
     function getData(dateValues) {
-        waitingFor($("#data-display"), true);
+        waitingFor($("#chart"), true);
         $.post(".", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
-            waitingFor($("#data-display"), false);
-            console.log(data);
+            waitingFor($("#chart"), false);
             if (data.nodes.length != 0 || data.links.length != 0) {
                 $("#no-data").toggle(false);
                 $("#chart").toggle(true);
