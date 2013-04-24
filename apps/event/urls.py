@@ -9,5 +9,6 @@ from django.conf.urls import patterns, url
 urlpatterns = patterns('apps.event.views',
     url(r'^origin/(?P<pk>\d+)/$', view='by_origin'),
     url(r'^rp/(?P<pk>\d+)/$', view='by_rp'),
-    url(r'^entities/?$', view='entities'),
+    url(r'^authentication-flow/$', view='auth_flow'),
+    url(r'^entities/$', view='entities'),
 )

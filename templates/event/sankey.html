@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block js %}
+{% load staticfiles %}
+<script type="text/javascript" src="{% static "js/spin/spin.min.js" %}"></script>
+<script type="text/javascript" src="{% static "js/jquery/jquery.spin.js" %}"></script>
+<script type="text/javascript" src="{% static "js/d3/d3.v3.min.js" %}"></script>
+<script type="text/javascript" src="{% static "js/d3/sankey.js" %}"></script>
+<script type="text/javascript">
+    // AJAX setup
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+    function csrfSafeMethod(method) {
+        // these HTTP methods do not require CSRF protection
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+
+    // Graph setup
+    var formatNumber = d3.format("d"),
+        format = function(d) { return formatNumber(d) + " request(s)"; },
+        color = d3.scale.category20();
+
+    function generateGraph(data, width, height) {
+        var margin = {top: 10, right: 1, bottom: 30, left: 1};
+        width = width - margin.left - margin.right;
+        height = height - margin.top - margin.bottom;
+
+        d3.select("svg").remove();
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var sankey = d3.sankey()
+            .nodeWidth(15)
+            .nodePadding(10)
+            .size([width, height]);
+
+        var path = sankey.link();
+
+        sankey.nodes(data.nodes)
+            .links(data.links)
+            .layout(32);
+
+        var link = svg.append("g").selectAll(".link")
+            .data(data.links)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", path)
+            .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+            .sort(function(a, b) { return b.dy - a.dy; });
+
+        link.append("title")
+            .text(function(d) { return d.source.name + " → " + d.target.name + "\n" + format(d.value); });
+
+        var node = svg.append("g").selectAll(".node")
+            .data(data.nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+            .call(d3.behavior.drag()
+            .origin(function(d) { return d; })
+            .on("dragstart", function() { this.parentNode.appendChild(this); })
+            .on("drag", dragmove));
+
+        node.append("rect")
+            .attr("height", function(d) { return d.dy; })
+            .attr("width", sankey.nodeWidth())
+            .style("fill", function(d) { return d.color = color(d.name.replace(/ .*/, "")); })
+            .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
+            .append("title")
+            .text(function(d) { return d.name + "\n" + format(d.value); });
+
+        node.append("text")
+            .attr("x", -6)
+            .attr("y", function(d) { return d.dy / 2; })
+            .attr("dy", ".35em")
+            .attr("text-anchor", "end")
+            .attr("transform", null)
+            .text(function(d) { return d.name; })
+            .filter(function(d) { return d.x < width / 2; })
+            .attr("x", 6 + sankey.nodeWidth())
+            .attr("text-anchor", "start");
+
+        function dragmove(d) {
+            d3.select(this).attr("transform", "translate(" + d.x + "," + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + ")");
+            sankey.relayout();
+            link.attr("d", path);
+        }
+    }
+
+    function waitingFor(target, waiting) {
+        var opts = {
+            lines: 13, // The number of lines to draw
+            length: 20, // The length of each line
+            width: 10, // The line thickness
+            radius: 30, // The radius of the inner circle
+            corners: 1, // Corner roundness (0..1)
+            rotate: 0, // The rotation offset
+            direction: 1, // 1: clockwise, -1: counterclockwise
+            color: '#000', // #rgb or #rrggbb
+            speed: 1, // Rounds per second
+            trail: 60, // Afterglow percentage
+            shadow: false, // Whether to render a shadow
+            hwaccel: false, // Whether to use hardware acceleration
+            className: 'spinner', // The CSS class to assign to the spinner
+            zIndex: 2e9, // The z-index (defaults to 2000000000)
+            top: 'auto', // Top position relative to parent in px
+            left: 'auto' // Left position relative to parent in px
+        };
+        if (waiting) {
+            target.spin(opts);
+        } else {
+            target.spin(false);
+        }
+    }
+    function getData(dateValues) {
+        waitingFor($("#data-display"), true);
+        $.post(".", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
+            waitingFor($("#data-display"), false);
+            console.log(data);
+            if (data.nodes.length != 0 || data.links.length != 0) {
+                $("#no-data").toggle(false);
+                $("#chart").toggle(true);
+                // Graph
+                generateGraph(data, 940, data.nodes.length * 20)
+            } else {
+                $("#no-data").toggle(true);
+                $("#chart").toggle(false);
+            }
+        }, "json");
+    }
+    $(document).ready(function() {
+        $("#no-data").toggle(false);
+        $("#chart").toggle(false);
+        $.ajaxSetup({
+            crossDomain: false, // obviates need for sameOrigin test
+            beforeSend: function(xhr, settings) {
+                if (!csrfSafeMethod(settings.type)) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        // Slider
+        today = new Date();
+        slider_opt = {
+            bounds:{
+                min: new Date(2012, 0, 1),
+                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+            },
+            defaultValues:{
+                min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-15),
+                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+            },
+            wheelMode: "scroll"
+        };
+        var slider = $("#dates");
+        slider.dateRangeSlider(slider_opt);
+        slider.bind("valuesChanged", function(e, data){
+            getData($("#dates").dateRangeSlider("values"));
+        });
+    });
+</script>
+{% endblock %}
+{% block main %}
+<div class="page-header">
+    <h3>Authentication flow in SWAMID</h3>
+</div>
+<div class="rangeslider span7 offset2">
+    <div id="dates"></div>
+</div>
+<div id="no-data" class="alert alert-error span3 offset4 text-center">
+    No data for that time range.
+</div>
+<div class="row text-center">
+    <p id="chart"></p>
+</div>
+{% endblock %}
