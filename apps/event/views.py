@@ -24,7 +24,7 @@ def by_rp(request, pk):
         d = Entity.objects.filter(origin_events__rp=entity,
                                   origin_events__ts__range=(start_time, end_time))
         data = []
-        for e in d.annotate(count=Count('origin_events__id')).order_by('-count').iterator():
+        for e in d.annotate(count=Count('origin_events__id')).order_by('-count'):
             data.append({'label': str(e), 'data': e.count, 'id': e.id})
         return HttpResponse(json.dumps(data), content_type="application/json")
 
@@ -43,7 +43,7 @@ def by_origin(request, pk):
         d = Entity.objects.filter(rp_events__origin=entity,
                                   rp_events__ts__range=(start_time, end_time))
         data = []
-        for e in d.annotate(count=Count('rp_events__id'),).order_by('-count').iterator():
+        for e in d.annotate(count=Count('rp_events__id'),).order_by('-count'):
             data.append({'label': str(e), 'data': e.count, 'id': e.id})
         return HttpResponse(json.dumps(data), content_type="application/json")
 
@@ -57,8 +57,8 @@ def auth_flow(request):
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
         print start_time, end_time
-        d = Event.objects.filter(ts__range=(start_time, end_time))\
-            .values('origin__id', 'origin__uri', 'rp__id', 'rp__uri').iterator()
+        d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
+                                                                          'rp__id', 'rp__uri')
         nodes = {}
         links = {}
         for e in d:
