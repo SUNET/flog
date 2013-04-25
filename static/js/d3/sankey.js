@@ -8,7 +8,8 @@ d3.sankey = function() {
       nodePadding = 8,
       size = [1, 1],
       nodes = [],
-      links = [];
+      links = [],
+      valueThreshold = 50;
 
   sankey.nodeWidth = function(_) {
     if (!arguments.length) return nodeWidth;
@@ -42,6 +43,7 @@ d3.sankey = function() {
 
   sankey.layout = function(iterations) {
     computeNodeLinks();
+    computeValueThreshold();
     computeNodeValues();
     computeNodeBreadths();
     computeNodeDepths(iterations);
@@ -97,7 +99,6 @@ d3.sankey = function() {
             }
             return false;
           });
-
       }
       if (typeof target === "number") {
           nodes.some(function(node) {
@@ -111,6 +112,35 @@ d3.sankey = function() {
       source.sourceLinks.push(link);
       target.targetLinks.push(link);
     });
+  }
+
+  // Combines any nodes with value under valueThreshold in to an other node
+  function computeValueThreshold() {
+      var otherNode = {"name": "Other <" + valueThreshold};
+      otherNode.sourceLinks = [];
+      otherNode.targetLinks = [];
+      nodes.forEach(function(node) {
+          console.log(node);
+          var result = d3.sum(node.sourceLinks, value);
+          if (result != 0 && result <= valueThreshold) {
+              console.log(node);
+              var index = nodes.indexOf(node);
+              nodes.splice(index, 1);
+              otherNode.sourceLinks.push.apply(otherNode.sourceLinks, node.sourceLinks);
+              links.forEach(function(link) {
+                 if (link.target == node) {
+                     link.target = otherNode;
+                 }
+              });
+          }
+      });
+      otherNode.sourceLinks.forEach(function(link) {
+          //console.log(link);
+          link.source = otherNode;
+      });
+      console.log(otherNode.sourceLinks);
+      console.log(otherNode);
+      nodes.push(otherNode)
   }
 
   // Compute the value (size) of each node by summing the associated links.
