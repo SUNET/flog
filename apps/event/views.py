@@ -4,7 +4,8 @@ Created on Apr 13, 2012
 @author: leifj
 """
 
-from datetime import datetime
+from dateutil import parser as dtparser
+from django.utils.timezone import localtime
 import json
 from apps.event.models import Entity, Event
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
@@ -18,8 +19,8 @@ def by_rp(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'origin'
     if request.POST:
-        start_time = datetime.strptime(request.POST['start'][:28], "%a %b %d %Y %H:%M:%S %Z")
-        end_time = datetime.strptime(request.POST['end'][:28], "%a %b %d %Y %H:%M:%S %Z")
+        start_time = localtime(dtparser.parse(request.POST['start']))
+        end_time = localtime(dtparser.parse(request.POST['end']))
         d = Entity.objects.filter(origin_events__rp=entity,
                                   origin_events__ts__range=(start_time, end_time))
         data = []
@@ -37,8 +38,8 @@ def by_origin(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'rp'
     if request.POST:
-        start_time = datetime.strptime(request.POST['start'][:28], "%a %b %d %Y %H:%M:%S %Z")
-        end_time = datetime.strptime(request.POST['end'][:28], "%a %b %d %Y %H:%M:%S %Z")
+        start_time = localtime(dtparser.parse(request.POST['start']))
+        end_time = localtime(dtparser.parse(request.POST['end']))
         d = Entity.objects.filter(rp_events__origin=entity,
                                   rp_events__ts__range=(start_time, end_time))
         data = []
@@ -53,8 +54,9 @@ def by_origin(request, pk):
 
 def auth_flow(request):
     if request.POST:
-        start_time = datetime.strptime(request.POST['start'][:28], "%a %b %d %Y %H:%M:%S %Z")
-        end_time = datetime.strptime(request.POST['end'][:28], "%a %b %d %Y %H:%M:%S %Z")
+        start_time = localtime(dtparser.parse(request.POST['start']))
+        end_time = localtime(dtparser.parse(request.POST['end']))
+        print start_time, end_time
         d = Event.objects.filter(ts__range=(start_time, end_time))\
             .values('origin__id', 'origin__uri', 'rp__id', 'rp__uri').iterator()
         nodes = {}

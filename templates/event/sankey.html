@@ -129,18 +129,19 @@
             target.spin(false);
         }
     }
-    function getData(dateValues) {
-        waitingFor($("#chart"), true);
-        $.post(".", {start: dateValues.min.toString(), end: dateValues.max.toString()}, function(data) {
-            waitingFor($("#chart"), false);
+    function getData(startTime, endTime) {
+        var chart = $("#chart");
+        waitingFor(chart, true);
+        $.post(".", {start: startTime.toString(), end: endTime.toString()}, function(data) {
+            waitingFor(chart, false);
             if (data.nodes.length != 0 || data.links.length != 0) {
                 $("#no-data").toggle(false);
-                $("#chart").toggle(true);
+                chart.toggle(true);
                 // Graph
                 generateGraph(data, 940, data.nodes.length * 20)
             } else {
                 $("#no-data").toggle(true);
-                $("#chart").toggle(false);
+                chart.toggle(false);
             }
         }, "json");
     }
@@ -171,7 +172,11 @@
         var slider = $("#dates");
         slider.dateRangeSlider(slider_opt);
         slider.bind("valuesChanged", function(e, data){
-            getData($("#dates").dateRangeSlider("values"));
+            var dateValues = $("#dates").dateRangeSlider("values");
+            var start = dateValues.min;
+            // Add 24h to end date as it comes as 00:00:00 as standard
+            var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
+            getData(start, end);
         });
     });
 </script>
