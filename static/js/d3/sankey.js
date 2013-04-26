@@ -43,7 +43,7 @@ d3.sankey = function() {
 
   sankey.layout = function(iterations) {
     computeNodeLinks();
-    computeValueThreshold();
+    //computeValueThreshold();
     computeNodeValues();
     computeNodeBreadths();
     computeNodeDepths(iterations);

@@ -58,14 +58,14 @@ def by_origin(request, pk):
                               {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
                               context_instance=RequestContext(request))
 
-
+@ensure_csrf_cookie
 def auth_flow(request):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
+        cache.clear()
         data = cache.get('%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
-            print 'no cache'
             d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
                                                                               'rp__id', 'rp__uri')
             nodes = {}
