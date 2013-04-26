@@ -49,7 +49,8 @@
         var sankey = d3.sankey()
             .nodeWidth(15)
             .nodePadding(13)
-            .size([width, height]);
+            .size([width, height])
+            .valueThreshold(15);
 
         var path = sankey.link();
 

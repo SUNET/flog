@@ -63,7 +63,6 @@ def auth_flow(request):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        cache.clear()
         data = cache.get('%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
             d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
