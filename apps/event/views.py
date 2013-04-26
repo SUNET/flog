@@ -22,14 +22,14 @@ def by_rp(request, pk):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('%s-%s' % (start_time.date(), end_time.date()), False)
+        data = cache.get('by-rp-%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
             data = []
             d = Entity.objects.filter(origin_events__rp=entity,
                                       origin_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('origin_events__id')).order_by('-count'):
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('%s-%s' % (start_time.date(), end_time.date()), data)
+            cache.set('by-rp-%s-%s' % (start_time.date(), end_time.date()), data)
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
@@ -44,14 +44,14 @@ def by_origin(request, pk):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('%s-%s' % (start_time.date(), end_time.date()), False)
+        data = cache.get('by-origin-%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
             data = []
             d = Entity.objects.filter(rp_events__origin=entity,
                                       rp_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('rp_events__id'),).order_by('-count'):
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('%s-%s' % (start_time.date(), end_time.date()), data)
+            cache.set('by-origin-%s-%s' % (start_time.date(), end_time.date()), data)
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
@@ -63,7 +63,7 @@ def auth_flow(request):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('%s-%s' % (start_time.date(), end_time.date()), False)
+        data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
             d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
                                                                               'rp__id', 'rp__uri')
@@ -85,7 +85,7 @@ def auth_flow(request):
                 'nodes': nodes.values(),
                 'links': links.values()
             }
-            cache.set('%s-%s' % (start_time.date(), end_time.date()), data)
+            cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data)
         return HttpResponse(json.dumps(data), content_type="application/json")
     return render_to_response('event/sankey.html', {'width': 940, 'height': 1500},
                               context_instance=RequestContext(request))
