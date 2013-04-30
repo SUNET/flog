@@ -1,6 +1,8 @@
 //
 // Created by Mike Bostock - http://bost.ocks.org/mike/sankey/
 //
+// valueThreshold added by Johan Lundberg (lundberg at nordu dot net).
+//
 
 d3.sankey = function() {
   var sankey = {},
@@ -63,7 +65,7 @@ d3.sankey = function() {
   };
 
   sankey.link = function() {
-    var curvature = .5;
+    var curvature = 0.5;
 
     function link(d) {
       var x0 = d.source.x + d.source.dx,
@@ -73,10 +75,7 @@ d3.sankey = function() {
           x3 = xi(1 - curvature),
           y0 = d.source.y + d.sy + d.dy / 2,
           y1 = d.target.y + d.ty + d.dy / 2;
-      return "M" + x0 + "," + y0
-           + "C" + x2 + "," + y0
-           + " " + x3 + "," + y1
-           + " " + x1 + "," + y1;
+      return "M" + x0 + "," + y0 + "C" + x2 + "," + y0 + " " + x3 + "," + y1 + " " + x1 + "," + y1;
     }
 
     link.curvature = function(_) {
@@ -99,7 +98,7 @@ d3.sankey = function() {
           target = link.target;
       if (typeof source === "number") {
           nodes.some(function(node) {
-            if (node.id == source) {
+            if (node.id === source) {
                 source = link.source = node;
                 return true;
             }
@@ -108,7 +107,7 @@ d3.sankey = function() {
       }
       if (typeof target === "number") {
           nodes.some(function(node) {
-             if (node.id == target) {
+             if (node.id === target) {
                 target = link.target = node;
                 return true;
              }
@@ -122,24 +121,46 @@ d3.sankey = function() {
 
   // Combines any nodes with value below valueThreshold in to an "other node"
   function computeValueThreshold() {
-      var otherNode = {"name": "Other <" + valueThreshold};
-      otherNode.sourceLinks = [];
-      otherNode.targetLinks = [];
+      var otherNode = {
+          "name": "Other <" + valueThreshold,
+          sourceLinks: [],
+          targetLinks: []
+      };
+
       for (var i = 0; i < nodes.length; i++) {
           var node = nodes[i];
           var result = d3.sum(node.sourceLinks, value);
-          if (result != 0 && result <= valueThreshold) {
+          if (result !== 0 && result <= valueThreshold) {
               var index = nodes.indexOf(node);
               nodes.splice(index, 1);
               i--;
               otherNode.sourceLinks.push.apply(otherNode.sourceLinks, node.sourceLinks);
           }
       }
+
       otherNode.sourceLinks.forEach(function(link) {
-          //console.log(link);
           link.source = otherNode;
+          var i1 = links.indexOf(link);
+          links.splice(i1, 1);
       });
-      nodes.push(otherNode)
+
+      for (var j = 0; j < otherNode.sourceLinks.length; j++) {
+          var link = otherNode.sourceLinks[j];
+          for (var k = j+1; k < otherNode.sourceLinks.length; k++) {
+              var nextLink = otherNode.sourceLinks[k];
+              if (link.target === nextLink.target) {
+                  link.value += nextLink.value;
+                  var i1 = otherNode.sourceLinks.indexOf(nextLink);
+                  otherNode.sourceLinks.splice(i1, 1);
+                  i1 = nextLink.target.targetLinks.indexOf(nextLink);
+                  nextLink.target.targetLinks.splice(i1, 1);
+                  k--;
+              }
+          }
+      }
+
+      links.push.apply(links, otherNode.sourceLinks);
+      nodes.push(otherNode);
   }
 
   // Compute the value (size) of each node by summing the associated links.
@@ -211,7 +232,7 @@ d3.sankey = function() {
     initializeNodeDepth();
     resolveCollisions();
     for (var alpha = 1; iterations > 0; --iterations) {
-      relaxRightToLeft(alpha *= .99);
+      relaxRightToLeft(alpha *= 0.99);
       resolveCollisions();
       relaxLeftToRight(alpha);
       resolveCollisions();

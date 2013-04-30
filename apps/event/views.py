@@ -13,6 +13,17 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models.aggregates import Count
 from django.core.cache import cache
+from django.db import connections, transaction  # DEBUG
+
+
+# Debug clear cache for sqlite workaround
+#def flush_cache():
+#    # This works as advertised on the memcached cache:
+#    cache.clear()
+#    # This manually purges the SQLite cache:
+#    cursor = connections['default'].cursor()
+#    cursor.execute('DELETE FROM flog_cache_table')
+#    transaction.commit_unless_managed(using='default')
 
 
 @ensure_csrf_cookie
@@ -27,7 +38,7 @@ def by_rp(request, pk):
             data = []
             d = Entity.objects.filter(origin_events__rp=entity,
                                       origin_events__ts__range=(start_time, end_time))
-            for e in d.annotate(count=Count('origin_events__id')).order_by('-count'):
+            for e in d.annotate(count=Count('origin_events__id')).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
             cache.set('by-rp-%s-%s' % (start_time.date(), end_time.date()), data)
         return HttpResponse(json.dumps(data), content_type="application/json")
@@ -49,7 +60,7 @@ def by_origin(request, pk):
             data = []
             d = Entity.objects.filter(rp_events__origin=entity,
                                       rp_events__ts__range=(start_time, end_time))
-            for e in d.annotate(count=Count('rp_events__id'),).order_by('-count'):
+            for e in d.annotate(count=Count('rp_events__id'),).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
             cache.set('by-origin-%s-%s' % (start_time.date(), end_time.date()), data)
         return HttpResponse(json.dumps(data), content_type="application/json")
@@ -57,6 +68,7 @@ def by_origin(request, pk):
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
                               context_instance=RequestContext(request))
+
 
 @ensure_csrf_cookie
 def auth_flow(request):
@@ -66,7 +78,7 @@ def auth_flow(request):
         data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
             d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
-                                                                              'rp__id', 'rp__uri')
+                                                                              'rp__id', 'rp__uri').iterator()
             nodes = {}
             links = {}
             for e in d:
