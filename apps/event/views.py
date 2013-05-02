@@ -136,7 +136,6 @@ def get_auth_flow_data(start, end):
 @ensure_csrf_cookie
 def auth_flow(request, default_min=1, default_max=1, value_threshold=50):
     if request.POST:
-        flush_cache()
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
         data = get_auth_flow_data(start_time, end_time)
