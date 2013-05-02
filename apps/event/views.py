@@ -7,23 +7,48 @@ Created on Apr 13, 2012
 from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
+import gc
 from apps.event.models import Entity, Event
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models.aggregates import Count
 from django.core.cache import cache
-from django.db import connections, transaction  # DEBUG
+from django.db import connections, transaction
 
 
-# Debug clear cache for sqlite workaround
-#def flush_cache():
-#    # This works as advertised on the memcached cache:
-#    cache.clear()
-#    # This manually purges the SQLite cache:
-#    cursor = connections['default'].cursor()
-#    cursor.execute('DELETE FROM flog_cache_table')
-#    transaction.commit_unless_managed(using='default')
+# Clear cache for sqlite (workaround)
+def flush_cache():
+    # This works as advertised on the memcached cache:
+    cache.clear()
+    # This manually purges the SQLite cache:
+    cursor = connections['default'].cursor()
+    cursor.execute('DELETE FROM flog_cache_table')
+    transaction.commit_unless_managed(using='default')
+
+
+def queryset_iterator(queryset, chunksize=1000):
+    """
+    Iterate over a Django Queryset ordered by the primary key
+
+    This method loads a maximum of chunksize (default: 1000) rows in it's
+    memory at the same time while django normally would load all rows in it's
+    memory. Using the iterator() method only causes it to not preload all the
+    classes.
+
+    Note that the implementation of the iterator does not support ordered query sets.
+    """
+    pk = 0
+    try:
+        last_pk = queryset.order_by('-pk')[0].pk
+    except IndexError:
+        raise StopIteration
+    queryset = queryset.order_by('pk')
+    while pk < last_pk:
+        for row in queryset.filter(pk__gt=pk)[:chunksize]:
+            pk = row.pk
+            yield row
+        gc.collect()
 
 
 @ensure_csrf_cookie
@@ -77,12 +102,13 @@ def auth_flow(request):
         end_time = localtime(dtparser.parse(request.POST['end']))
         data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
         if not data:
-            d = Event.objects.filter(ts__range=(start_time, end_time)).values('origin__id', 'origin__uri',
-                                                                              'rp__id', 'rp__uri').iterator()
+            qs = queryset_iterator(Event.objects.filter(ts__range=(start_time, end_time)))
+            #qs = queryset_iterator(Event.objects.select_related().filter(ts__range=(start_time, end_time)))
+            # .values('origin__id', 'origin__uri', 'rp__id', 'rp__uri')
             nodes = {}
             links = {}
-            for e in d:
-                key = (e['rp__id'], e['origin__id'])
+            for e in qs:
+                key = (e.rp_id, e.origin_id)
                 if key in links:
                     links[key]['value'] += 1
                 else:
@@ -91,8 +117,8 @@ def auth_flow(request):
                         'target': key[1],
                         'value': 1
                     }
-                    nodes[key[0]] = {'id': key[0], 'name': e['rp__uri']}
-                    nodes[key[1]] = {'id': key[1], 'name': e['origin__uri']}
+                    nodes[key[0]] = {'id': key[0], 'name': e.rp.uri}
+                    nodes[key[1]] = {'id': key[1], 'name': e.origin.uri}
             data = {
                 'nodes': nodes.values(),
                 'links': links.values()
