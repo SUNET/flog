@@ -27,11 +27,11 @@ def flush_cache():
     transaction.commit_unless_managed(using='default')
 
 
-def queryset_iterator(queryset, chunksize=1000):
+def queryset_iterator(queryset, chunksize=100000):
     """
     Iterate over a Django Queryset ordered by the primary key
 
-    This method loads a maximum of chunksize (default: 1000) rows in it's
+    This method loads a maximum of chunksize (default: 100000) rows in it's
     memory at the same time while django normally would load all rows in it's
     memory. Using the iterator() method only causes it to not preload all the
     classes.
@@ -51,8 +51,16 @@ def queryset_iterator(queryset, chunksize=1000):
         gc.collect()
 
 
+def entities(request):
+    idp = Entity.objects.filter(is_idp=True).all()
+    rp = Entity.objects.filter(is_rp=True).all()
+    return render_to_response('event/list.html',
+                              {'rps': rp.all(), 'idps': idp.all()},
+                              context_instance=RequestContext(request))
+
+
 @ensure_csrf_cookie
-def by_rp(request, pk):
+def by_rp(request, pk, default_min=15, default_max=1):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'origin'
     if request.POST:
@@ -69,12 +77,14 @@ def by_rp(request, pk):
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
+                              {'entity': entity, 'cross_type': cross_type,
+                               'threshold': 0.05, "default_min": default_min,
+                               "default_max": default_max},
                               context_instance=RequestContext(request))
 
 
 @ensure_csrf_cookie
-def by_origin(request, pk):
+def by_origin(request, pk, default_min=15, default_max=1):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'rp'
     if request.POST:
@@ -91,47 +101,47 @@ def by_origin(request, pk):
         return HttpResponse(json.dumps(data), content_type="application/json")
 
     return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type, 'threshold': 0.05},
+                              {'entity': entity, 'cross_type': cross_type,
+                               'threshold': 0.05, "default_min": default_min,
+                               "default_max": default_max},
                               context_instance=RequestContext(request))
+
+
+def get_auth_flow_data(start, end):
+    data = cache.get('auth-flow-%s-%s' % (start.date(), end.date()), False)
+    if not data:
+        qs = queryset_iterator(Event.objects.filter(ts__range=(start, end)))
+        nodes = {}
+        links = {}
+        for e in qs:
+            key = (e.rp_id, e.origin_id)
+            if key in links:
+                links[key]['value'] += 1
+            else:
+                links[key] = {
+                    'source': key[0],
+                    'target': key[1],
+                    'value': 1
+                }
+                nodes[key[0]] = {'id': key[0], 'name': e.rp.uri}
+                nodes[key[1]] = {'id': key[1], 'name': e.origin.uri}
+        data = {
+            'nodes': nodes.values(),
+            'links': links.values()
+        }
+        cache.set('auth-flow-%s-%s' % (start.date(), end.date()), data)
+    return data
 
 
 @ensure_csrf_cookie
-def auth_flow(request):
+def auth_flow(request, default_min=1, default_max=1, value_threshold=50):
     if request.POST:
+        flush_cache()
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
-        if not data:
-            qs = queryset_iterator(Event.objects.filter(ts__range=(start_time, end_time)))
-            #qs = queryset_iterator(Event.objects.select_related().filter(ts__range=(start_time, end_time)))
-            # .values('origin__id', 'origin__uri', 'rp__id', 'rp__uri')
-            nodes = {}
-            links = {}
-            for e in qs:
-                key = (e.rp_id, e.origin_id)
-                if key in links:
-                    links[key]['value'] += 1
-                else:
-                    links[key] = {
-                        'source': key[0],
-                        'target': key[1],
-                        'value': 1
-                    }
-                    nodes[key[0]] = {'id': key[0], 'name': e.rp.uri}
-                    nodes[key[1]] = {'id': key[1], 'name': e.origin.uri}
-            data = {
-                'nodes': nodes.values(),
-                'links': links.values()
-            }
-            cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data)
+        data = get_auth_flow_data(start_time, end_time)
         return HttpResponse(json.dumps(data), content_type="application/json")
-    return render_to_response('event/sankey.html', {'width': 940, 'height': 1500},
-                              context_instance=RequestContext(request))
-
-
-def entities(request):
-    idp = Entity.objects.filter(is_idp=True).all()
-    rp = Entity.objects.filter(is_rp=True).all()
-    return render_to_response('event/list.html',
-                              {'rps':rp.all(),'idps':idp.all()},
+    return render_to_response('event/sankey.html',
+                              {'default_min': default_min, 'default_max': default_max,
+                               "value_threshold": value_threshold},
                               context_instance=RequestContext(request))

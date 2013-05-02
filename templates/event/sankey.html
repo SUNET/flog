@@ -50,7 +50,7 @@
             .nodeWidth(15)
             .nodePadding(13)
             .size([width, height])
-            .valueThreshold(50);
+            .valueThreshold({{ value_threshold }});
 
         var path = sankey.link();
 
@@ -132,15 +132,17 @@
     }
     function getData(startTime, endTime) {
         var chart = $("#chart");
-        waitingFor(chart, true);
+        var spinner = $("#spinner");
+        waitingFor(spinner, true);
         $.post(".", {start: startTime.toString(), end: endTime.toString()}, function(data) {
-            waitingFor(chart, false);
             if (data.nodes.length != 0 || data.links.length != 0) {
                 $("#no-data").toggle(false);
                 chart.toggle(true);
                 // Graph
                 generateGraph(data, 940, data.nodes.length * 20)
+                waitingFor(spinner, false);
             } else {
+                waitingFor(spinner, false);
                 $("#no-data").toggle(true);
                 chart.toggle(false);
             }
@@ -165,8 +167,8 @@
                 max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
             },
             defaultValues:{
-                min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-15),
-                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+                min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_min }}),
+                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_max }})
             },
             wheelMode: "scroll"
         };
@@ -189,6 +191,9 @@
 <div class="rangeslider span7 offset2">
     <div id="dates"></div>
 </div>
+
+<p class="disclaimer span7 offset2"><i class="icon-asterisk"></i> <small>Please be patient when viewing longer time spans.</small></p>
+<div id="spinner"></div>
 <div id="no-data" class="alert alert-error span3 offset4 text-center">
     No data for that time range.
 </div>

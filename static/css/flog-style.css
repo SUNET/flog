@@ -22,6 +22,10 @@ div.graph {
     height: 300px;
 }
 
+p.disclaimer {
+    margin-top: -35px;
+}
+
 /* Sankey diagram */
 #chart {
   height: 500px;
