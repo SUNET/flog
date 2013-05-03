@@ -107,10 +107,10 @@ def by_origin(request, pk, default_min=15, default_max=1):
                               context_instance=RequestContext(request))
 
 
-def get_auth_flow_data(start, end):
-    data = cache.get('auth-flow-%s-%s' % (start.date(), end.date()), False)
+def get_auth_flow_data(start_time, end_time):
+    data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
     if not data:
-        qs = queryset_iterator(Event.objects.filter(ts__range=(start, end)))
+        qs = queryset_iterator(Event.objects.filter(ts__range=(start_time, end_time)))
         nodes = {}
         links = {}
         for e in qs:
@@ -129,7 +129,7 @@ def get_auth_flow_data(start, end):
             'nodes': nodes.values(),
             'links': links.values()
         }
-        cache.set('auth-flow-%s-%s' % (start.date(), end.date()), data)
+        cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data)
     return data
 
 
