@@ -14,7 +14,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             default_max = int(args[0])
-            default_min = int(args[1])
+            default_min = int(args[1]) - 1
             today = datetime.now(tzutc())
             max_date = today - timedelta(days=default_max)
             min_date = today - timedelta(days=default_min)
