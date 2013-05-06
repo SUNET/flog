@@ -16,9 +16,9 @@ class Command(BaseCommand):
             default_max = int(args[0])
             default_min = int(args[1]) - 1
             today = datetime.now(tzutc())
-            max_date = today - timedelta(days=default_max)
-            min_date = today - timedelta(days=default_min)
-            get_auth_flow_data(max_date, min_date)
+            max_dt = today - timedelta(days=default_max)
+            min_dt = today - timedelta(days=default_min)
+            get_auth_flow_data(max_dt, min_dt)
         except ValueError:
             raise CommandError('Could not make sense of the max or min days.')
         except IndexError:

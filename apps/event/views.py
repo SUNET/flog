@@ -73,9 +73,8 @@ def by_rp(request, pk, default_min=15, default_max=1):
                                       origin_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('origin_events__id')).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-rp-%s-%s' % (start_time.date(), end_time.date()), data)
+            cache.set('by-rp-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
-
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
                                'threshold': 0.05, "default_min": default_min,
@@ -97,9 +96,8 @@ def by_origin(request, pk, default_min=15, default_max=1):
                                       rp_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('rp_events__id'),).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-origin-%s-%s' % (start_time.date(), end_time.date()), data)
+            cache.set('by-origin-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
-
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
                                'threshold': 0.05, "default_min": default_min,
@@ -129,7 +127,7 @@ def get_auth_flow_data(start_time, end_time):
             'nodes': nodes.values(),
             'links': links.values()
         }
-        cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data)
+        cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
     return data
 
 
