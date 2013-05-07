@@ -177,7 +177,7 @@
         slider.bind("valuesChanged", function(e, data){
             var dateValues = $("#dates").dateRangeSlider("values");
             var start = dateValues.min;
-            // Add 24h to end date as it comes as 00:00:00 as standard
+            // Add 24h to end date as time is set to 00:00:00 as standard
             var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
             getData(start, end);
         });
@@ -192,7 +192,7 @@
     <div id="dates"></div>
 </div>
 
-<p class="disclaimer span7 offset2"><i class="icon-asterisk"></i> <small>Please be patient when viewing longer time spans.</small></p>
+<p class="disclaimer span7 offset2"><i class="icon-asterisk"></i> <small>Please be patient when viewing custom time spans.</small></p>
 <div id="spinner"></div>
 <div id="no-data" class="alert alert-error span3 offset4 text-center">
     No data for that time range.
