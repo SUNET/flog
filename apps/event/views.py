@@ -21,7 +21,7 @@ from django.db import connections, transaction
 def flush_cache():
     # This works as advertised on the memcached cache:
     cache.clear()
-    # This manually purges the SQLite cache:
+    # This manually purges the SQLite/postgres cache:
     cursor = connections['default'].cursor()
     cursor.execute('DELETE FROM flog_cache_table')
     transaction.commit_unless_managed(using='default')
@@ -66,14 +66,14 @@ def by_rp(request, pk, default_min=15, default_max=1):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('by-rp-%s-%s' % (start_time.date(), end_time.date()), False)
+        data = cache.get('by-rp-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
             d = Entity.objects.filter(origin_events__rp=entity,
                                       origin_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('origin_events__id')).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-rp-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
+            cache.set('by-rp-%s-%s-%s' % (pk, start_time.date(), end_time.date()), data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
@@ -89,14 +89,14 @@ def by_origin(request, pk, default_min=15, default_max=1):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('by-origin-%s-%s' % (start_time.date(), end_time.date()), False)
+        data = cache.get('by-origin-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
             d = Entity.objects.filter(rp_events__origin=entity,
                                       rp_events__ts__range=(start_time, end_time))
             for e in d.annotate(count=Count('rp_events__id'),).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-origin-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
+            cache.set('by-origin-%s-%s-%s' % (pk, start_time.date(), end_time.date()), data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
