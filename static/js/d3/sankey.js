@@ -121,46 +121,98 @@ d3.sankey = function() {
 
   // Combines any nodes with value below valueThreshold in to an "other node"
   function computeValueThreshold() {
-      var otherNode = {
+      if (valueThreshold === 0) { return; } // Do not do anything if valueThreshold is 0
+
+      var i;
+      var j;
+      var node;
+      var index;
+      var link;
+      var nextLink;
+
+      // Combine source nodes with values under valueThreshold
+      var otherSourceNode = {
           "name": "Other <" + valueThreshold,
           sourceLinks: [],
           targetLinks: []
       };
 
-      for (var i = 0; i < nodes.length; i++) {
-          var node = nodes[i];
-          var result = d3.sum(node.sourceLinks, value);
-          if (result !== 0 && result <= valueThreshold) {
-              var index = nodes.indexOf(node);
+      for (i = 0; i < nodes.length; i++) {
+          node = nodes[i];
+          var sourceResult = d3.sum(node.sourceLinks, value);
+          if (sourceResult !== 0 && sourceResult <= valueThreshold) {
+              index = nodes.indexOf(node);
               nodes.splice(index, 1);
               i--;
-              otherNode.sourceLinks.push.apply(otherNode.sourceLinks, node.sourceLinks);
+              otherSourceNode.sourceLinks.push.apply(otherSourceNode.sourceLinks, node.sourceLinks);
           }
       }
 
-      otherNode.sourceLinks.forEach(function(link) {
-          link.source = otherNode;
-          var i1 = links.indexOf(link);
-          links.splice(i1, 1);
+      otherSourceNode.sourceLinks.forEach(function(link) {
+          link.source = otherSourceNode;
+          var index = links.indexOf(link);
+          links.splice(index, 1);
       });
 
-      for (var j = 0; j < otherNode.sourceLinks.length; j++) {
-          var link = otherNode.sourceLinks[j];
-          for (var k = j+1; k < otherNode.sourceLinks.length; k++) {
-              var nextLink = otherNode.sourceLinks[k];
+      for (i = 0; i < otherSourceNode.sourceLinks.length; i++) {
+          link = otherSourceNode.sourceLinks[i];
+          for (j = i+1; j < otherSourceNode.sourceLinks.length; j++) {
+              nextLink = otherSourceNode.sourceLinks[j];
               if (link.target === nextLink.target) {
                   link.value += nextLink.value;
-                  var i1 = otherNode.sourceLinks.indexOf(nextLink);
-                  otherNode.sourceLinks.splice(i1, 1);
-                  i1 = nextLink.target.targetLinks.indexOf(nextLink);
-                  nextLink.target.targetLinks.splice(i1, 1);
-                  k--;
+                  index = otherSourceNode.sourceLinks.indexOf(nextLink);
+                  otherSourceNode.sourceLinks.splice(index, 1);
+                  index = nextLink.target.targetLinks.indexOf(nextLink);
+                  nextLink.target.targetLinks.splice(index, 1);
+                  j--;
               }
           }
       }
 
-      links.push.apply(links, otherNode.sourceLinks);
-      nodes.push(otherNode);
+      links.push.apply(links, otherSourceNode.sourceLinks);
+      nodes.push(otherSourceNode);
+
+      // Combine target nodes with values under valueThreshold
+      var otherTargetNode = {
+          "name": "Other <" + valueThreshold,
+          sourceLinks: [],
+          targetLinks: []
+      };
+
+      for (i = 0; i < nodes.length; i++) {
+          node = nodes[i];
+          var targetResult = d3.sum(node.targetLinks, value);
+          if (targetResult !== 0 && targetResult <= valueThreshold) {
+              index = nodes.indexOf(node);
+              nodes.splice(index, 1);
+              i--;
+              otherTargetNode.targetLinks.push.apply(otherTargetNode.targetLinks, node.targetLinks);
+          }
+      }
+
+      otherTargetNode.targetLinks.forEach(function(link) {
+          link.target = otherTargetNode;
+          var index = links.indexOf(link);
+          links.splice(index, 1);
+      });
+
+      for (i = 0; i < otherTargetNode.targetLinks.length; i++) {
+          link = otherTargetNode.targetLinks[i];
+          for (j = i+1; j < otherTargetNode.targetLinks.length; j++) {
+              nextLink = otherTargetNode.targetLinks[j];
+              if (link.source === nextLink.source) {
+                  link.value += nextLink.value;
+                  index = otherTargetNode.targetLinks.indexOf(nextLink);
+                  otherTargetNode.targetLinks.splice(index, 1);
+                  index = nextLink.source.sourceLinks.indexOf(nextLink);
+                  nextLink.source.sourceLinks.splice(index, 1);
+                  j--;
+              }
+          }
+      }
+
+      links.push.apply(links, otherTargetNode.targetLinks);
+      nodes.push(otherTargetNode);
   }
 
   // Compute the value (size) of each node by summing the associated links.
