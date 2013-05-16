@@ -52,9 +52,9 @@ function waitingFor(target, waiting) {
         target.spin(false);
     }
 }
-function getData(startTime, endTime) {
+function getData(startTime, endTime, protocol) {
     waitingFor($("#data-display"), true);
-    $.post(".", {start: startTime.toString(), end: endTime.toString()}, function(data) {
+    $.post(".", {start: startTime.toString(), end: endTime.toString(), protocol: protocol}, function(data) {
         waitingFor($("#data-display"), false);
         if (data.length > 0) {
             var pie = $("#pie");
@@ -122,7 +122,8 @@ $(document).ready(function() {
         var start = dateValues.min;
         // Add 24h to end date as it comes as 00:00:00 as standard
         var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
-        getData(start, end);
+        var protocol = {{ protocol }}
+        getData(start, end, protocol);
     });
 });
 </script>

@@ -16,6 +16,16 @@ from django.db.models.aggregates import Count
 from django.core.cache import cache
 from django.db import connections, transaction
 
+def get_protocol(protocol):
+    protocols = {
+        'Unknown': Event.Unknown,
+        'WAYF': Event.WAYF,
+        'Discovery': Event.Discovery,
+        'SAML2': Event.SAML2,
+    }
+    if protocol in protocols:
+        return protocols[protocol]
+    return Event.SAML2
 
 # Clear cache for sqlite (workaround)
 def flush_cache():
@@ -60,55 +70,77 @@ def entities(request):
 
 
 @ensure_csrf_cookie
-def by_rp(request, pk, default_min=15, default_max=1):
+def by_rp(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'origin'
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('by-rp-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
+        protocol = request.POST['protocol']
+        data = cache.get('by-rp-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol), False)
         if not data:
             data = []
             d = Entity.objects.filter(origin_events__rp=entity,
-                                      origin_events__ts__range=(start_time, end_time))
+                                      origin_events__ts__range=(start_time, end_time),
+                                      origin_events__protocol=protocol)
             for e in d.annotate(count=Count('origin_events__id')).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-rp-%s-%s-%s' % (pk, start_time.date(), end_time.date()), data, 60*60*24)  # 24h
+            cache.set('by-rp-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol),
+                      data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        default_min = request.GET.get('min', 15)
+        default_max = request.GET.get('max', 1)
+        protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
+        try:
+            threshold = float(request.GET.get('threshold', 0.05))
+        except ValueError:
+            return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
-                               'threshold': 0.05, "default_min": default_min,
-                               "default_max": default_max},
+                               'threshold': threshold, 'default_min': default_min,
+                               'default_max': default_max, 'protocol': protocol},
                               context_instance=RequestContext(request))
 
 
 @ensure_csrf_cookie
-def by_origin(request, pk, default_min=15, default_max=1):
+def by_origin(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'rp'
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = cache.get('by-origin-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
+        protocol = request.POST['protocol']
+        data = cache.get('by-origin-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol), False)
         if not data:
             data = []
             d = Entity.objects.filter(rp_events__origin=entity,
-                                      rp_events__ts__range=(start_time, end_time))
+                                      rp_events__ts__range=(start_time, end_time),
+                                      rp_events__protocol=protocol)
             for e in d.annotate(count=Count('rp_events__id'),).order_by('-count').iterator():
                 data.append({'label': str(e), 'data': e.count, 'id': e.id})
-            cache.set('by-origin-%s-%s-%s' % (pk, start_time.date(), end_time.date()), data, 60*60*24)  # 24h
+            cache.set('by-origin-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol),
+                      data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        default_min = request.GET.get('min', 15)
+        default_max = request.GET.get('max', 1)
+        protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
+        try:
+            threshold = float(request.GET.get('threshold', 0.05))
+        except ValueError:
+            return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render_to_response('event/piechart.html',
                               {'entity': entity, 'cross_type': cross_type,
-                               'threshold': 0.05, "default_min": default_min,
-                               "default_max": default_max},
+                               'threshold': threshold, 'default_min': default_min,
+                               'default_max': default_max, 'protocol': protocol},
                               context_instance=RequestContext(request))
 
 
-def get_auth_flow_data(start_time, end_time):
-    data = cache.get('auth-flow-%s-%s' % (start_time.date(), end_time.date()), False)
+def get_auth_flow_data(start_time, end_time, protocol):
+    data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = queryset_iterator(Event.objects.filter(ts__range=(start_time, end_time)))
+        qs = queryset_iterator(Event.objects.filter(protocol=protocol, ts__range=(start_time, end_time)))
         nodes = {}
         links = {}
         for e in qs:
@@ -127,18 +159,28 @@ def get_auth_flow_data(start_time, end_time):
             'nodes': nodes.values(),
             'links': links.values()
         }
-        cache.set('auth-flow-%s-%s' % (start_time.date(), end_time.date()), data, 60*60*24)  # 24h
+        cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
+                  data, 60*60*24)  # 24h
     return data
 
 
 @ensure_csrf_cookie
-def auth_flow(request, default_min=1, default_max=1, value_threshold=50):
+def auth_flow(request):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
-        data = get_auth_flow_data(start_time, end_time)
+        protocol = request.POST['protocol']
+        data = get_auth_flow_data(start_time, end_time, protocol)
         return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        default_min = request.GET.get('min', 1)
+        default_max = request.GET.get('max', 1)
+        protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
+        try:
+            threshold = int(request.GET.get('threshold', 50))
+        except ValueError:
+            return HttpResponse('Argument threshold not a number.', content_type="text/html")
     return render_to_response('event/sankey.html',
                               {'default_min': default_min, 'default_max': default_max,
-                               "value_threshold": value_threshold},
+                               "threshold": threshold, 'protocol': protocol},
                               context_instance=RequestContext(request))
