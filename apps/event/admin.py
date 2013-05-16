@@ -5,7 +5,9 @@ from apps.event.models import Event, Entity
 
 
 class EventAdmin(admin.ModelAdmin):
-    pass
+    date_hierarchy = 'ts'
+    list_display = ('ts', 'origin', 'rp', 'protocol')
+    list_filter = ('protocol',)
 
 admin.site.register(Event, EventAdmin)
 
