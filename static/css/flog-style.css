@@ -26,6 +26,10 @@ p.disclaimer {
     margin-top: -35px;
 }
 
+div.pie-hover {
+    padding-top: 10px;
+}
+
 /* Sankey diagram */
 #chart {
   height: 500px;

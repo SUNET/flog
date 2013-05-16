@@ -52,6 +52,14 @@ function waitingFor(target, waiting) {
         target.spin(false);
     }
 }
+
+function pieHover(event, pos, obj) {
+    if (!obj)
+        return;
+    var percent = parseFloat(obj.series.percent).toFixed(2);
+    $("#hover").html('<p style="font-weight: bold; color: '+obj.series.color+'">'+obj.series.label+' ('+percent+'%)</p>');
+}
+
 function getData(startTime, endTime, protocol) {
     waitingFor($("#data-display"), true);
     $.post(".", {start: startTime.toString(), end: endTime.toString(), protocol: protocol}, function(data) {
@@ -74,10 +82,10 @@ function getData(startTime, endTime, protocol) {
                         }
                     },
                     grid: {
-                        hoverable: true,
-                        clickable: true
+                        hoverable: true
                     }
                 });
+            pie.bind("plothover", pieHover);
             // Table
             $("#data-table tbody tr").remove();
             $.each(data, function(index, item) {
@@ -158,6 +166,7 @@ $(document).ready(function() {
         <div>
             <div id="pie" class="graph"></div>
         </div>
+        <div id="hover" class="text-center pie-hover"></div>
     </div>
 </div>
 {% endblock %}
