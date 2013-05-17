@@ -130,7 +130,7 @@ $(document).ready(function() {
         var start = dateValues.min;
         // Add 24h to end date as it comes as 00:00:00 as standard
         var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
-        var protocol = {{ protocol }}
+        var protocol = {{ protocol }};
         getData(start, end, protocol);
     });
 });
