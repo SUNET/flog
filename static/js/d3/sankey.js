@@ -96,6 +96,8 @@ d3.sankey = function() {
     links.forEach(function(link) {
       var source = link.source,
           target = link.target;
+      // Hack to counter self referencing links
+      if (link.source === link.target) { return false; }
       if (typeof source === "number") {
           nodes.some(function(node) {
             if (node.id === source) {
