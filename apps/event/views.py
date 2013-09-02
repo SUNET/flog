@@ -61,11 +61,20 @@ def queryset_iterator(queryset, chunksize=100000):
         gc.collect()
 
 
-def entities(request):
+def index(request):
+    return render_to_response('event/index.html', {},
+                              context_instance=RequestContext(request))
+
+
+def websso_entities(request):
     idp = Entity.objects.filter(is_idp=True).all()
     rp = Entity.objects.filter(is_rp=True).all()
-    return render_to_response('event/list.html',
+    return render_to_response('event/websso_list.html',
                               {'rps': rp.all(), 'idps': idp.all()},
+                              context_instance=RequestContext(request))
+
+def eduroam_entities(request):
+    return render_to_response('event/eduroam_list.html', {},
                               context_instance=RequestContext(request))
 
 
