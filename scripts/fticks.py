@@ -17,9 +17,8 @@ import daemon
 #
 # Requires python-dateutil and python-daemon.
 
-#p = re.compile(r'F-TICKS/(?P<federation>[\w]+)/(?P<version>[\d+][\.]?[\d]*)#TS=(?P<ts>[\w]+)#RP=(?P<rp>[\w/:_@\.\?\-]+)#AP=(?P<ap>[\w/:_@\.\?\-]+)#PN=(?P<pn>[\w]+)#AM=(?P<am>[\w:\.]*)')
-
-p = re.compile(r'''
+# Federated Identity Management data
+fedlog = re.compile(r'''
                 F-TICKS/
                 (?P<federation>[\w]+)/
                 (?P<version>[\d+][\.]?[\d]*)
@@ -29,6 +28,18 @@ p = re.compile(r'''
                 \#PN=(?P<pn>[\w]+)
                 \#AM=(?P<am>[\w:\.]*)
                 ''', re.VERBOSE)
+
+# eduroam data
+eduroam = re.compile(r'''
+                   F-TICKS/
+                   eduroam/
+                   (?P<version>[\d+][\.]?[\d]*)
+                   \#REALM=(?P<realm>[\w/:_@\.\?\-]+)
+                   \#VISCOUNTRY=(?P<country_code>[\w]{2,3})  # a two-letter (ISO 3166-1 alpha-2), a three-letter (ISO 3166-1 alpha-3) or a three-digit numeric (ISO 3166-1 numeric) code.
+                   \#VISINST=(?P<ap_id>[\w/:_@\.\?\-]+)
+                   \#CSI=(?P<calling_station_id>[\w\-]+)
+                   \#RESULT=(?P<result>OK|FAIL)
+                   ''', re.VERBOSE)
 
 
 def post_data(url, data):
@@ -44,7 +55,7 @@ def format_timestamp(ts):
     return dt.isoformat(sep=' ')
 
 
-def format_data(m):
+def format_fedlog_data(m):
     data = [
         format_timestamp(m.group('ts')),
         '3',                             # 0:'Unknown', 1:'WAYF', 2:'Discovery', 3:'SAML2'
@@ -55,12 +66,29 @@ def format_data(m):
     return ';'.join(data)
 
 
+def format_eduroam_data(m):
+    data = [
+        'eduroam',
+        m.group('version'),
+        m.group('realm'),
+        m.group('country_code'),
+        m.group('ap_id'),
+        m.group('calling_station_id'),
+        m.group('result')
+    ]
+    return ';'.join(data)
+
+
 def batch_importer(f, url):
     batch = []
     for line in f:
-        m = p.search(line)
-        if m:
-            batch.append(format_data(m))
+        fedlog_match = fedlog.search(line)
+        if fedlog_match:
+            batch.append(format_fedlog_data(fedlog_match))
+        else:
+            eduroam_match = eduroam.search(line)
+            if eduroam_match:
+                batch.append(format_eduroam_data(eduroam_match))
         if len(batch) > 1000:  # Approx. 300kb in file size
             print post_data(url, '\n'.join(batch))
             batch = []
@@ -71,9 +99,13 @@ def batch_importer(f, url):
 def single_importer(f, url):
     try:
         for line in f:
-            m = p.search(line)
-            if m:
-                print post_data(url, format_data(m) + '\n')
+            fedlog_match = fedlog.search(line)
+            if fedlog_match:
+                print post_data(url, format_fedlog_data(fedlog_match) + '\n')
+            else:
+                eduroam_match = eduroam.search(line)
+                if eduroam_match:
+                    print post_data(url, format_eduroam_data(eduroam_match) + '\n')
     except (KeyboardInterrupt, TypeError) as e:
         raise e
 
@@ -87,7 +119,7 @@ def main():
                         action='store_true')
     parser.add_argument('-d', '--daemon', help='Run in daemon mode and read from named pipe [PIPE]', default=False,
                         action='store_true')
-    parser.add_argument('-p', '--pipe', type=str)
+    parser.add_argument('-p', '--pipe', help='Named pipe', type=str)
     parser.add_argument('-f', '--foreground', help='Run daemon in foreground', default=False,
                         action='store_true')
     args = parser.parse_args()
