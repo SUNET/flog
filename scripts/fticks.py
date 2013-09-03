@@ -35,8 +35,8 @@ eduroam = re.compile(r'''
                    eduroam/
                    (?P<version>[\d+][\.]?[\d]*)
                    \#REALM=(?P<realm>[\w/:_@\.\?\-]+)
-                   \#VISCOUNTRY=(?P<country_code>[\w]{2,3})  # a two-letter (ISO 3166-1 alpha-2), a three-letter (ISO 3166-1 alpha-3) or a three-digit numeric (ISO 3166-1 numeric) code.
-                   \#VISINST=(?P<ap_id>[\w/:_@\.\?\-]+)
+                   \#VISCOUNTRY=(?P<visited_country>[\w]{2,3})  # a two-letter (ISO 3166-1 alpha-2), a three-letter (ISO 3166-1 alpha-3) or a three-digit numeric (ISO 3166-1 numeric) code.
+                   \#VISINST=(?P<visited_institution>[\w/:_@\.\?\-]+)
                    \#CSI=(?P<calling_station_id>[\w\-]+)
                    \#RESULT=(?P<result>OK|FAIL)
                    ''', re.VERBOSE)
@@ -71,8 +71,8 @@ def format_eduroam_data(m):
         'eduroam',
         m.group('version'),
         m.group('realm'),
-        m.group('country_code'),
-        m.group('ap_id'),
+        m.group('visited_country'),
+        m.group('visited_institution'),
         m.group('calling_station_id'),
         m.group('result')
     ]
