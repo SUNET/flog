@@ -18,7 +18,7 @@ import daemon
 # Requires python-dateutil and python-daemon.
 
 # Federated Identity Management data
-fedlog = re.compile(r'''
+websso = re.compile(r'''
                 F-TICKS/
                 (?P<federation>[\w]+)/
                 (?P<version>[\d+][\.]?[\d]*)
@@ -31,6 +31,7 @@ fedlog = re.compile(r'''
 
 # eduroam data
 eduroam = re.compile(r'''
+                   (?P<meta>.*):\s
                    F-TICKS/
                    eduroam/
                    (?P<version>[\d+][\.]?[\d]*)
@@ -55,7 +56,7 @@ def format_timestamp(ts):
     return dt.isoformat(sep=' ')
 
 
-def format_fedlog_data(m):
+def format_websso_data(m):
     data = [
         format_timestamp(m.group('ts')),
         '3',                             # 0:'Unknown', 1:'WAYF', 2:'Discovery', 3:'SAML2'
@@ -67,7 +68,9 @@ def format_fedlog_data(m):
 
 
 def format_eduroam_data(m):
+    ts = ' '.join(m.group('meta').split()[:3])
     data = [
+        format_timestamp(ts),
         'eduroam',
         m.group('version'),
         m.group('realm'),
@@ -82,9 +85,9 @@ def format_eduroam_data(m):
 def batch_importer(f, url):
     batch = []
     for line in f:
-        fedlog_match = fedlog.search(line)
-        if fedlog_match:
-            batch.append(format_fedlog_data(fedlog_match))
+        websso_match = websso.search(line)
+        if websso_match:
+            batch.append(format_websso_data(websso_match))
         else:
             eduroam_match = eduroam.search(line)
             if eduroam_match:
@@ -99,9 +102,9 @@ def batch_importer(f, url):
 def single_importer(f, url):
     try:
         for line in f:
-            fedlog_match = fedlog.search(line)
-            if fedlog_match:
-                print post_data(url, format_fedlog_data(fedlog_match) + '\n')
+            websso_match = websso.search(line)
+            if websso_match:
+                print post_data(url, format_websso_data(websso_match) + '\n')
             else:
                 eduroam_match = eduroam.search(line)
                 if eduroam_match:
