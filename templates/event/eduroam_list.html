@@ -20,5 +20,22 @@
 {% endblock %}
 
 {% block main %}
-stuff
+    <div class="row">
+        <div class="span5">
+            <h4>Visited</h4>
+            <ul class="unstyled">
+                {% for realm in realms %}
+                    <li><a href="realm/to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="span5">
+            <h4>Came from</h4>
+            <ul class="unstyled">
+                {% for realm in realms %}
+                    <li><a href="realm/from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 {% endblock %}

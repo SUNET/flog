@@ -179,7 +179,7 @@
             var start = dateValues.min;
             // Add 24h to end date as time is set to 00:00:00 as standard
             var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
-            var protocol = {{ protocol }};
+            var protocol = "{{ protocol }}";
             getData(start, end, protocol);
         });
     });
@@ -187,7 +187,7 @@
 {% endblock %}
 {% block main %}
 <div class="page-header">
-    <h3>Authentication flow in SWAMID</h3>
+    <a href="../"><h3>Authentication flow in SWAMID</h3></a>
 </div>
 <div class="rangeslider span7 offset2">
     <div id="dates"></div>

@@ -8,7 +8,7 @@ from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
 import gc
-from apps.event.models import Entity, Event
+from apps.event.models import Entity, Event, EduroamRealm, EduroamEvent
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -73,8 +73,10 @@ def websso_entities(request):
                               {'rps': rp.all(), 'idps': idp.all()},
                               context_instance=RequestContext(request))
 
-def eduroam_entities(request):
-    return render_to_response('event/eduroam_list.html', {},
+
+def eduroam_realms(request):
+    realms = EduroamRealm.objects.all()
+    return render_to_response('event/eduroam_list.html', {'realms': realms},
                               context_instance=RequestContext(request))
 
 
@@ -146,6 +148,70 @@ def by_origin(request, pk):
                               context_instance=RequestContext(request))
 
 
+@ensure_csrf_cookie
+def to_realm(request, pk):
+    realm = get_object_or_404(EduroamRealm, pk=pk)
+    cross_type = 'from'
+    if request.POST:
+        start_time = localtime(dtparser.parse(request.POST['start']))
+        end_time = localtime(dtparser.parse(request.POST['end']))
+        data = cache.get('to-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
+        if not data:
+            data = []
+            d = EduroamRealm.objects.filter(realm_events__visited_institution=realm,
+                                            realm_events__successful=True,
+                                            realm_events__ts__range=(start_time, end_time))
+            for e in d.annotate(count=Count('realm_events__id'),).order_by('-count').iterator():
+                data.append({'label': str(e), 'data': e.count, 'id': e.id})
+            cache.set('to-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()),
+                      data, 60*60*24)  # 24h
+        return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        default_min = request.GET.get('min', 15)
+        default_max = request.GET.get('max', 1)
+        try:
+            threshold = float(request.GET.get('threshold', 0.05))
+        except ValueError:
+            return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
+    return render_to_response('event/piechart.html',
+                              {'realm': realm, 'cross_type': cross_type,
+                               'threshold': threshold, 'default_min': default_min,
+                               'default_max': default_max},
+                              context_instance=RequestContext(request))
+
+
+@ensure_csrf_cookie
+def from_realm(request, pk):
+    realm = get_object_or_404(EduroamRealm, pk=pk)
+    cross_type = 'to'
+    if request.POST:
+        start_time = localtime(dtparser.parse(request.POST['start']))
+        end_time = localtime(dtparser.parse(request.POST['end']))
+        data = cache.get('from-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
+        if not data:
+            data = []
+            d = EduroamRealm.objects.filter(institution_events__realm=realm,
+                                            institution_events__successful=True,
+                                            institution_events__ts__range=(start_time, end_time))
+            for e in d.annotate(count=Count('institution_events__id'),).order_by('-count').iterator():
+                data.append({'label': str(e), 'data': e.count, 'id': e.id})
+            cache.set('from-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()),
+                      data, 60*60*24)  # 24h
+        return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        default_min = request.GET.get('min', 15)
+        default_max = request.GET.get('max', 1)
+        try:
+            threshold = float(request.GET.get('threshold', 0.05))
+        except ValueError:
+            return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
+    return render_to_response('event/piechart.html',
+                              {'realm': realm, 'cross_type': cross_type,
+                               'threshold': threshold, 'default_min': default_min,
+                               'default_max': default_max},
+                              context_instance=RequestContext(request))
+
+
 def get_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
@@ -173,18 +239,49 @@ def get_auth_flow_data(start_time, end_time, protocol):
     return data
 
 
+def get_eduroam_auth_flow_data(start_time, end_time, protocol):
+    data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
+    if not data:
+        qs = queryset_iterator(EduroamEvent.objects.filter(ts__range=(start_time, end_time)))
+        nodes = {}
+        links = {}
+        for e in qs:
+            key = ('from%d' % e.realm_id, 'to%d' % e.visited_institution_id)
+            if key in links:
+                links[key]['value'] += 1
+            else:
+                links[key] = {
+                    'source': key[0],
+                    'target': key[1],
+                    'value': 1
+                }
+                nodes[key[0]] = {'id': key[0], 'name': e.realm.realm}
+                nodes[key[1]] = {'id': key[1], 'name': e.visited_institution.realm}
+        data = {
+            'nodes': nodes.values(),
+            'links': links.values()
+        }
+        cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
+                  data, 60*60*24)  # 24h
+    return data
+
+
 @ensure_csrf_cookie
-def auth_flow(request):
+def auth_flow(request, protocol=None):
     if request.POST:
         start_time = localtime(dtparser.parse(request.POST['start']))
         end_time = localtime(dtparser.parse(request.POST['end']))
         protocol = request.POST['protocol']
-        data = get_auth_flow_data(start_time, end_time, protocol)
+        if protocol == 'eduroam':
+            data = get_eduroam_auth_flow_data(start_time, end_time, protocol)
+        else:
+            data = get_auth_flow_data(start_time, end_time, protocol)
         return HttpResponse(json.dumps(data), content_type="application/json")
     else:
         default_min = request.GET.get('min', 1)
         default_max = request.GET.get('max', 1)
-        protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
+        if not protocol:
+            protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
         try:
             threshold = int(request.GET.get('threshold', 50))
         except ValueError:

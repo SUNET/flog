@@ -14,6 +14,9 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+# Meta data from meta.eduroam.se
+EDUROAM_META_DATA = os.path.join(BASE_DIR, 'scripts/institution.xml')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.

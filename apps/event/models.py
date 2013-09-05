@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.fields import DateTimeField, URLField, SmallIntegerField,\
     CharField, BooleanField
 from django.db.models.fields.related import ForeignKey
+from django.utils.timezone import utc
 import logging
 
 
@@ -40,102 +41,142 @@ class Event(models.Model):
     SAML2 = 3
     
     def __unicode__(self):
-        return "%s;%s;%s;%s;%s" % (self.ts, self.protocol, self.principal,
+        return '%s;%s;%s;%s;%s' % (self.ts, self.protocol, self.principal,
                                    self.origin, self.rp)
 
 
-def _add_event(ts, origin, rp, protocol, principal=None):
-    event, created = Event.objects.get_or_create(ts=ts, origin=origin, rp=rp,
-                                                 protocol=protocol, principal=principal)
-    if created:
-        return 1
-    else:
-        return 0
+class Country(models.Model):
+
+    class Meta:
+        ordering = ['country_code']
+
+    country_code = CharField(max_length=3, unique=True)
+    name = CharField(max_length=256, blank=True, default='Unknown')
+
+    def __unicode__(self):
+        return '%s (%s)' % (self.name, self.country_code)
 
 
-def add_event(ts, origin_uri, rp_uri, protocol, principal=None):
-    origin, created = Entity.objects.get_or_create(uri=origin_uri)
-    if not origin.is_idp:
-        origin.is_idp = True
-        origin.save()
-    
-    rp, created = Entity.objects.get_or_create(uri=rp_uri)
-    if not rp.is_rp:
-        rp.is_rp = True
-        rp.save()
-        
-    return _add_event(ts, origin, rp, protocol, principal)
+class EduroamRealm(models.Model):
+
+    class Meta:
+        ordering = ['realm']
+
+    realm = CharField(max_length=128, unique=True)
+    name = CharField(max_length=256, blank=True)
+    country = ForeignKey(Country, related_name='country_realms',
+                         blank=True, null=True, on_delete=models.SET_NULL)
+
+    def __unicode__(self):
+        return self.realm
+
+
+class EduroamEvent(models.Model):
+    ts = DateTimeField(db_index=True)
+    version = CharField(max_length=10)
+    realm = ForeignKey(EduroamRealm, related_name='realm_events')
+    visited_country = ForeignKey(Country, related_name='country_events')
+    visited_institution = ForeignKey(EduroamRealm, related_name='institution_events',
+                                     blank=True, null=True, on_delete=models.SET_NULL)
+    calling_station_id = CharField(max_length=128)
+    successful = BooleanField()
+
+    def __unicode__(self):
+        return '%s;%s;%s;%s;%s;%s;%s' % (self.ts, self.version, self.realm, self.visited_country,
+                                         self.visited_institution, self.calling_station_id, self.successful)
+
+
+def import_websso_events(event, cache, batch):
+    try:
+        logging.debug(event)
+        (ts, protocol, rp_uri, origin_uri, principal) = event
+        p = Event.Unknown
+        try:
+            p = int(protocol)
+        except ValueError:
+            pass
+        if protocol == 'D':
+            p = Event.Discovery
+        elif protocol == 'W':
+            p = Event.WAYF
+
+        if not rp_uri in cache:
+            rp, created = Entity.objects.get_or_create(uri=rp_uri)
+            if not rp.is_rp:
+                rp.is_rp = True
+                rp.save()
+            cache[rp_uri] = rp
+        rp = cache[rp_uri]
+
+        if not origin_uri in cache:
+            origin, created = Entity.objects.get_or_create(uri=origin_uri)
+            if not origin.is_idp:
+                origin.is_idp = True
+                origin.save()
+            cache[origin_uri] = origin
+        origin = cache[origin_uri]
+
+        batch.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
+    except Exception, exc:
+        logging.error(exc)
+    return cache, batch
+
+
+def import_eduroam_events(event, cache, batch):
+    try:
+        logging.debug(event)
+        (ts, eduroam, version, event_realm, visited_country, visited_institution, calling_station_id, result) = event
+        success = False
+        if result.lower() == 'ok':
+            success = True
+
+        event_realm = event_realm.lower()
+        if not event_realm in cache:
+            realm, created = EduroamRealm.objects.get_or_create(realm=event_realm)
+            cache[event_realm] = realm
+        realm = cache[event_realm]
+
+        visited_country = visited_country.lower()
+        if not visited_country in cache:
+            country, created = Country.objects.get_or_create(country_code=visited_country)
+            cache[visited_country] = country
+        country = cache[visited_country]
+
+        visited_institution = visited_institution.lower().lstrip('1')  # Realm as Operator-Name indicated by a leading 1
+        if not visited_institution in cache:
+            visited_realm, created = EduroamRealm.objects.get_or_create(realm=visited_institution)
+            cache[visited_institution] = visited_realm
+        visited_realm = cache[visited_institution]
+
+        batch.append(EduroamEvent(ts=ts, version=version, realm=realm, visited_country=country,
+                                  visited_institution=visited_realm, calling_station_id=calling_station_id,
+                                  successful=success))
+    except Exception, exc:
+        logging.error(exc)
+    return cache, batch
 
 
 def import_events(lines):
-    cache = {}
-    lst = []
+    websso_cache, eduroam_cache = {}, {}
+    websso_batch, eduroam_batch = [], []
     for line in lines.split('\n'):
-        if len(lst) > 100:
-            Event.objects.bulk_create(lst)
-            lst = []
-            
+        # Batch create
+        if len(websso_batch) > 100:
+            Event.objects.bulk_create(websso_batch)
+            websso_batch = []
+        if len(eduroam_batch) > 100:
+            EduroamEvent.objects.bulk_create(eduroam_batch)
+            eduroam_batch = []
         try:
-            logging.debug(line)
-            (ts, protocol, rp_uri, origin_uri, principal) = line.split(';')
-            p = Event.Unknown
-            try:
-                p = int(protocol)
-            except ValueError:
-                pass
-            if protocol == 'D':
-                p = Event.Discovery
-            elif protocol == 'W':
-                p = Event.WAYF
-                
-            if not rp_uri in cache:
-                rp, created = Entity.objects.get_or_create(uri=rp_uri)
-                if not rp.is_rp:
-                    rp.is_rp = True
-                    rp.save()
-                cache[rp_uri] = rp
-            rp = cache[rp_uri]
-            
-            if not origin_uri in cache:
-                origin, created = Entity.objects.get_or_create(uri=origin_uri)
-                if not origin.is_idp:
-                    origin.is_idp = True
-                    origin.save()
-                cache[origin_uri] = origin
-            origin = cache[origin_uri]
-                
-            lst.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
-        except Exception, exc:
+            event = line.split(';')
+            if event[1] == 'eduroam':
+                eduroam_cache, eduroam_batch = import_eduroam_events(event, eduroam_cache, eduroam_batch)
+            else:
+                websso_cache, websso_batch = import_websso_events(event, websso_cache, websso_batch)
+        except ValueError as exc:
             logging.error(exc)
-    
-    if len(lst) > 0:
-        Event.objects.bulk_create(lst)
-
-
-def import_event(line, cache={}):
-    (ts, protocol, rp_uri, origin_uri, principal) = line.split(';')
-    p = Event.Unknown
-    try:
-        p = int(protocol)
-    except ValueError:
-        pass
-    if protocol == 'D':
-        p = Event.Discovery
-    elif protocol == 'W':
-        p = Event.WAYF
-
-    if not rp_uri in cache:
-        rp, created = Entity.objects.get_or_create(uri=rp_uri)
-        if not rp.is_rp:
-            rp.is_rp = True
-            rp.save()
-        cache[rp_uri] = rp
-    
-    if not origin_uri in cache:
-        origin, created = Entity.objects.get_or_create(uri=origin_uri)
-        if not origin.is_idp:
-            origin.is_idp = True
-            origin.save()
-        cache[origin_uri] = origin
-        
-    return _add_event(ts,cache[origin_uri],cache[rp_uri],p,principal)
+    # Batch create
+    if len(websso_batch) > 0:
+        Event.objects.bulk_create(websso_batch)
+    if len(eduroam_batch) > 0:
+        EduroamEvent.objects.bulk_create(eduroam_batch)
