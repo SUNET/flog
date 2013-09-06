@@ -242,7 +242,8 @@ def get_auth_flow_data(start_time, end_time, protocol):
 def get_eduroam_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = queryset_iterator(EduroamEvent.objects.filter(ts__range=(start_time, end_time)))
+        qs = queryset_iterator(EduroamEvent.objects.filter(ts__range=(start_time, end_time),
+                                                           successful=True))
         nodes = {}
         links = {}
         for e in qs:

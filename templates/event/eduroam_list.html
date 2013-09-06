@@ -21,11 +21,22 @@
 
 {% block main %}
     <div class="row">
+        <div class="span8">
+            <h4>Authentication Flow</h4>
+            <ul class="unstyled">
+                <li><a href="authentication-flow/?min=8&max=1">Last week</a></li>
+                <li><a href="authentication-flow/?min=31&max=1">Last month</a></li>
+                <li><a href="authentication-flow/?min=366&max=1">Last year</a></li>
+                <li><a  href="authentication-flow/">Custom</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="row">
         <div class="span5">
             <h4>Visited</h4>
             <ul class="unstyled">
                 {% for realm in realms %}
-                    <li><a href="realm/to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    <li><a href="to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
                 {% endfor %}
             </ul>
         </div>
@@ -33,7 +44,7 @@
             <h4>Came from</h4>
             <ul class="unstyled">
                 {% for realm in realms %}
-                    <li><a href="realm/from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    <li><a href="from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
                 {% endfor %}
             </ul>
         </div>

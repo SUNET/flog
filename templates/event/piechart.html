@@ -145,9 +145,9 @@ $(document).ready(function() {
                 {% if entity %}
                     <h3>Stats for {{ entity }}</h3>
                 {% elif cross_type == "to" %}
-                    <h3>Users from {{ realm.name }} ({{ realm }}) visited</h3>
+                    <h3>Users from {{ realm.name }} ({{ realm }}) went to</h3>
                 {% elif cross_type == "from" %}
-                    <h3>{{ realm.name }} ({{ realm }}) was visited by</h3>
+                    <h3>Users that went to {{ realm.name }} ({{ realm }})</h3>
                 {% endif %}
             </a>
         </div>
@@ -173,7 +173,7 @@ $(document).ready(function() {
                     {% elif cross_type == "origin" %}
                         <th>Identity Provider</th>
                     {% else  %}
-                        <th>Visitor</th>
+                        <th>Realm</th>
                     {% endif %}
                 </tr>
             </thead>
