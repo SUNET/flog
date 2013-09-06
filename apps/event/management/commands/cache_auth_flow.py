@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 
 class Command(BaseCommand):
     args = 'max_days min_days protocol'
-    help = 'Runs the get_auth_flow_data so the result get cached.'
+    help = 'Runs the get_auth_flow_data so the result get cached. Example: "7 1 SAML2" caches last weeks data.'
 
     def handle(self, *args, **options):
         try:
             default_max = int(args[0])
             default_min = int(args[1]) - 1
             protocol = get_protocol(args[2])
-            today = datetime.now(tzutc())
+            today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
             max_dt = today - timedelta(days=default_max)
             min_dt = today - timedelta(days=default_min)
             get_auth_flow_data(max_dt, min_dt, protocol)
