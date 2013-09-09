@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
+import logging
 from apps.event.models import EduroamRealm, Country
 from django.core.management.base import NoArgsCommand, CommandError
+from django.db import DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 from xml.etree.ElementTree import iterparse
 
@@ -37,3 +39,6 @@ class Command(NoArgsCommand):
             raise CommandError('Could not import settings.py.')
         except IOError:
             raise CommandError('Could not open meta data file: %s' % meta_data)
+        except DatabaseError as e:
+            # Probably a country code that is not a country code.
+            logging.error(e)
