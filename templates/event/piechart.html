@@ -64,6 +64,7 @@ function getData(startTime, endTime, protocol) {
     waitingFor($("#data-display"), true);
     $.post(".", {start: startTime.toString(), end: endTime.toString(), protocol: protocol}, function(data) {
         waitingFor($("#data-display"), false);
+        $("#hover").html("");
         if (data.length > 0) {
             var pie = $("#pie");
             $("#no-data").toggle(false);
@@ -89,7 +90,7 @@ function getData(startTime, endTime, protocol) {
             // Table
             $("#data-table tbody tr").remove();
             $.each(data, function(index, item) {
-                $('#data-table > tbody:last').append('<tr><td>' + item.data +'</td><td><a href="/event/{{cross_type}}/' + item.id + '">' + item.label + '</a></td></tr>');
+                $('#data-table > tbody:last').append('<tr><td>' + item.data +'</td><td><a href="../../{{ cross_type }}/' + item.id + '">' + item.label + '</a></td></tr>');
             });
         } else {
             $("#no-data").toggle(true);
@@ -130,7 +131,7 @@ $(document).ready(function() {
         var start = dateValues.min;
         // Add 24h to end date as it comes as 00:00:00 as standard
         var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
-        var protocol = {{ protocol }};
+        var protocol = {{ protocol|default:"'not_used'" }};
         getData(start, end, protocol);
     });
 });
@@ -138,7 +139,22 @@ $(document).ready(function() {
 {% endblock %}
 {% block main %}
 <div class="page-header">
-    <h3>Stats for {{entity}}</h3>
+    <div class="row">
+        <div class="span8">
+            <a href="../../">
+                {% if entity %}
+                    <h3>Stats for {{ entity }}</h3>
+                {% elif cross_type == "to" %}
+                    <h3>Users from {{ realm.name }} ({{ realm }}) went to</h3>
+                {% elif cross_type == "from" %}
+                    <h3>Users that went to {{ realm.name }} ({{ realm }})</h3>
+                {% endif %}
+            </a>
+        </div>
+        <div class="span1 pull-right">
+            <a href="http://www.swamid.se/"><img src="{% static "img/SWAMID-50x60.png" %}"></a>
+        </div>
+    </div>
 </div>
 <div class="rangeslider span7 offset2">
     <div id="dates"></div>
@@ -156,6 +172,8 @@ $(document).ready(function() {
                         <th>Relying Party</th>
                     {% elif cross_type == "origin" %}
                         <th>Identity Provider</th>
+                    {% else  %}
+                        <th>Realm</th>
                     {% endif %}
                 </tr>
             </thead>

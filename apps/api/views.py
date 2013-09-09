@@ -4,7 +4,7 @@ Created on Apr 13, 2012
 @author: leifj
 '''
 
-from apps.event.models import import_event, import_events
+from apps.event.models import import_events
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 
