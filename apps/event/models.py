@@ -40,7 +40,7 @@ class Event(models.Model):
     SAML2 = 3
     
     def __unicode__(self):
-        return "%s;%s;%s;%s;%s" % (self.ts, self.protocol, self.principal,
+        return '%s;%s;%s;%s;%s' % (self.ts, self.protocol, self.principal,
                                    self.origin, self.rp)
 
 
@@ -57,6 +57,9 @@ class DailyEventAggregation(models.Model):
                                           (2, 'Discovery'),
                                           (3, 'SAML2')))
     num_events = BigIntegerField()
+
+    def __unicode__(self):
+        return '%s %dx %s -[%d]-> %s' % (self.date, self.num_events, self.rp_name, self.protocol, self.origin_name)
 
 
 def _add_event(ts, origin, rp, protocol, principal=None):
