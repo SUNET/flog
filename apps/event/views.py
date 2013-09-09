@@ -8,11 +8,11 @@ from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
 import gc
-from apps.event.models import Entity, Event
+from apps.event.models import Entity, Event, DailyEventAggregation
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db.models.aggregates import Count
+from django.db.models.aggregates import Count, Sum
 from django.core.cache import cache
 from django.db import connections, transaction
 
@@ -140,24 +140,23 @@ def by_origin(request, pk):
 def get_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = queryset_iterator(Event.objects.filter(protocol=protocol, ts__range=(start_time, end_time)))
+        qs = DailyEventAggregation.objects.all().filter(
+            date__range=(start_time.date(), end_time.date())).values('origin_name', 'rp_name', 'protocol').annotate(
+                total_events=Sum('num_events'))
         nodes = {}
-        links = {}
+        links = []
         for e in qs:
-            key = (e.rp_id, e.origin_id)
-            if key in links:
-                links[key]['value'] += 1
-            else:
-                links[key] = {
-                    'source': key[0],
-                    'target': key[1],
-                    'value': 1
-                }
-                nodes[key[0]] = {'id': key[0], 'name': e.rp.uri}
-                nodes[key[1]] = {'id': key[1], 'name': e.origin.uri}
+            keys = ('%s-rp' % e['rp_name'], '%s-origin' % e['origin_name'])
+            links.append({
+                'source': keys[0],
+                'target': keys[1],
+                'value': e['total_events']
+            })
+            nodes[keys[0]] = {'id': keys[0], 'name': e['rp_name']}
+            nodes[keys[1]] = {'id': keys[1], 'name': e['origin_name']}
         data = {
             'nodes': nodes.values(),
-            'links': links.values()
+            'links': links
         }
         cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
                   data, 60*60*24)  # 24h

@@ -5,8 +5,8 @@ Created on Apr 13, 2012
 """
 
 from django.db import models
-from django.db.models.fields import DateTimeField, URLField, SmallIntegerField,\
-    CharField, BooleanField
+from django.db.models.fields import DateTimeField, DateField, URLField, SmallIntegerField,\
+    CharField, BooleanField, BigIntegerField
 from django.db.models.fields.related import ForeignKey
 import logging
 
@@ -40,8 +40,26 @@ class Event(models.Model):
     SAML2 = 3
     
     def __unicode__(self):
-        return "%s;%s;%s;%s;%s" % (self.ts, self.protocol, self.principal,
+        return '%s;%s;%s;%s;%s' % (self.ts, self.protocol, self.principal,
                                    self.origin, self.rp)
+
+
+class DailyEventAggregation(models.Model):
+
+    class Meta:
+        unique_together = ('date', 'origin_name', 'rp_name', 'protocol')
+
+    date = DateField(db_index=True)
+    origin_name = CharField(max_length=200)
+    rp_name = CharField(max_length=200)
+    protocol = SmallIntegerField(choices=((0, 'Unknown'),
+                                          (1, 'WAYF'),
+                                          (2, 'Discovery'),
+                                          (3, 'SAML2')))
+    num_events = BigIntegerField()
+
+    def __unicode__(self):
+        return '%s %dx %s -[%d]-> %s' % (self.date, self.num_events, self.rp_name, self.protocol, self.origin_name)
 
 
 def _add_event(ts, origin, rp, protocol, principal=None):

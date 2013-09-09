@@ -98,24 +98,20 @@ d3.sankey = function() {
           target = link.target;
       // Hack to counter self referencing links
       if (link.source === link.target) { return false; }
-      if (typeof source === "number") {
-          nodes.some(function(node) {
-            if (node.id === source) {
-                source = link.source = node;
-                return true;
-            }
-            return false;
-          });
-      }
-      if (typeof target === "number") {
-          nodes.some(function(node) {
-             if (node.id === target) {
-                target = link.target = node;
-                return true;
-             }
-             return false;
-          });
-      }
+      nodes.some(function(node) {
+        if (node.id === source) {
+            source = link.source = node;
+            return true;
+        }
+        return false;
+      });
+      nodes.some(function(node) {
+         if (node.id === target) {
+            target = link.target = node;
+            return true;
+         }
+         return false;
+      });
       source.sourceLinks.push(link);
       target.targetLinks.push(link);
     });
