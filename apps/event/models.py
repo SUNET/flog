@@ -190,7 +190,7 @@ def import_events(lines):
                 eduroam_cache, eduroam_batch = import_eduroam_events(event, eduroam_cache, eduroam_batch)
             else:
                 websso_cache, websso_batch = import_websso_events(event, websso_cache, websso_batch)
-        except ValueError as exc:
+        except (ValueError, IndexError) as exc:
             logging.error(exc)
     # Batch create
     if len(websso_batch) > 0:
