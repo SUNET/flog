@@ -26,13 +26,14 @@ class Command(BaseCommand):
                     'date', 'origin__uri', 'rp__uri', 'protocol').annotate(num_events=Count('id'))
 
             for event_aggr in qs:
-                DailyEventAggregation.objects.get_or_create(
+                de, created = DailyEventAggregation.objects.get_or_create(
                     date=event_aggr['date'],
                     origin_name=event_aggr['origin__uri'],
                     rp_name=event_aggr['rp__uri'],
                     protocol=event_aggr['protocol'],
-                    num_events=event_aggr['num_events']
                 )
+                de.num_events = event_aggr['num_events']
+                de.save()
 
         except ValueError:
             raise CommandError('Could not make sense of the max or min days.')
