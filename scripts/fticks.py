@@ -32,14 +32,14 @@ websso = re.compile(r'''
 
 # eduroam data
 eduroam = re.compile(r'''
-                   (?P<meta>.*):\s
+                   (?P<meta>.*)
                    F-TICKS/
                    eduroam/
                    (?P<version>[\d+][\.]?[\d]*)
                    \#REALM=(?P<realm>[\w/:_@\.\?\-]+)
                    \#VISCOUNTRY=(?P<visited_country>[\w]{2,3})  # a two-letter (ISO 3166-1 alpha-2), a three-letter (ISO 3166-1 alpha-3) or a three-digit numeric (ISO 3166-1 numeric) code.
                    \#VISINST=(?P<visited_institution>[\w/:_@\.\?\-]+)
-                   \#CSI=(?P<calling_station_id>[\w\-]+)
+                   \#CSI=(?P<calling_station_id>[\w\-:]+)
                    \#RESULT=(?P<result>OK|FAIL)
                    ''', re.VERBOSE)
 
