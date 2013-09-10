@@ -2,6 +2,7 @@
 __author__ = 'lundberg'
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
 from django.db.models import Count
 from dateutil.tz import tzutc
 from apps.event.models import Event, DailyEventAggregation
@@ -31,10 +32,11 @@ class Command(BaseCommand):
                     origin_name=event_aggr['origin__uri'],
                     rp_name=event_aggr['rp__uri'],
                     protocol=event_aggr['protocol'],
+                    defaults={'num_events': event_aggr['num_events']}
                 )
-                de.num_events = event_aggr['num_events']
-                de.save()
-
+                if not created:
+                    de.num_events = event_aggr['num_events']
+                    de.save()
         except ValueError:
             raise CommandError('Could not make sense of the max or min days.')
         except IndexError:
