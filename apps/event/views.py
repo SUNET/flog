@@ -242,22 +242,43 @@ def get_auth_flow_data(start_time, end_time, protocol):
 def get_eduroam_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = queryset_iterator(EduroamEvent.objects.filter(ts__range=(start_time, end_time),
-                                                           successful=True))
+        qs = EduroamEvent.objects.filter(ts__range=(start_time, end_time), successful=True).values(
+            'realm__realm', 'visited_institution__realm', 'visited_country__name', 'realm__country__name').annotate(
+                Count('id'))
         nodes = {}
         links = {}
         for e in qs:
-            key = ('from%d' % e.realm_id, 'to%d' % e.visited_institution_id)
-            if key in links:
-                links[key]['value'] += 1
+            from_realm = e['realm__realm']
+            to_realm = e['visited_institution__realm']
+            from_country = e['realm__country__name']
+            to_country = e['visited_country__name']
+            realm_keys = ('from-%s' % from_realm, 'to-%s' % to_realm)
+            country_keys = ('from-%s' % from_country, 'to-%s' % to_country)
+            links[realm_keys] = {
+                'source': realm_keys[0],
+                'target': realm_keys[1],
+                'value': e['id__count']
+            }
+            if (country_keys[0], realm_keys[0]) in links:
+                links[(country_keys[0], realm_keys[0])]['value'] += e['id__count']
             else:
-                links[key] = {
-                    'source': key[0],
-                    'target': key[1],
-                    'value': 1
+                links[(country_keys[0], realm_keys[0])] = {
+                    'source': country_keys[0],
+                    'target': realm_keys[0],
+                    'value': e['id__count']
                 }
-                nodes[key[0]] = {'id': key[0], 'name': e.realm.realm}
-                nodes[key[1]] = {'id': key[1], 'name': e.visited_institution.realm}
+            if (country_keys[1], realm_keys[1]) in links:
+                links[(country_keys[1], realm_keys[1])]['value'] += e['id__count']
+            else:
+                links[(country_keys[1], realm_keys[1])] = {
+                    'source': realm_keys[1],
+                    'target': country_keys[1],
+                    'value': e['id__count']
+                }
+            nodes[realm_keys[0]] = {'id': realm_keys[0], 'name': from_realm}
+            nodes[realm_keys[1]] = {'id': realm_keys[1], 'name': to_realm}
+            nodes[country_keys[0]] = {'id': country_keys[0], 'name': from_country}
+            nodes[country_keys[1]] = {'id': country_keys[1], 'name': to_country}
         data = {
             'nodes': nodes.values(),
             'links': links.values()
