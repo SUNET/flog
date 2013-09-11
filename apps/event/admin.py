@@ -41,6 +41,7 @@ admin.site.register(EduroamEvent, EduroamEventAdmin)
 
 
 class EduroamRealmAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('realm', 'name', 'country')
+    list_filter = ('country',)
 
 admin.site.register(EduroamRealm, EduroamRealmAdmin)
