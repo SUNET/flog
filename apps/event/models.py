@@ -73,8 +73,10 @@ class Country(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.name, self.country_code)
 
-def get_unknown_country():
-    return Country.objects.get_or_create(country_code='0', name='Unknown')
+
+def get_default_country():
+    country, created = Country.objects.get_or_create(country_code='0', name='Unknown')
+    return country
 
 
 class EduroamRealm(models.Model):
@@ -86,7 +88,7 @@ class EduroamRealm(models.Model):
     name = CharField(max_length=256, blank=True)
     country = ForeignKey(Country, related_name='country_realms',
                          blank=True, null=True, on_delete=models.SET_NULL,
-                         default=get_unknown_country)
+                         default=get_default_country)
 
     def __unicode__(self):
         return self.realm
