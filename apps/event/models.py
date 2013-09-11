@@ -73,6 +73,9 @@ class Country(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.name, self.country_code)
 
+def get_unknown_country():
+    return Country.objects.get_or_create(country_code='0', name='Unknown')
+
 
 class EduroamRealm(models.Model):
 
@@ -82,7 +85,8 @@ class EduroamRealm(models.Model):
     realm = CharField(max_length=128, unique=True)
     name = CharField(max_length=256, blank=True)
     country = ForeignKey(Country, related_name='country_realms',
-                         blank=True, null=True, on_delete=models.SET_NULL)
+                         blank=True, null=True, on_delete=models.SET_NULL,
+                         default=get_unknown_country)
 
     def __unicode__(self):
         return self.realm
@@ -159,7 +163,9 @@ def import_eduroam_events(event, cache, batch):
             cache[visited_country] = country
         country = cache[visited_country]
 
-        visited_institution = visited_institution.lower().lstrip('1')  # Realm as Operator-Name indicated by a leading 1
+        visited_institution = visited_institution.lower()
+        visited_institution = visited_institution.lstrip('1')  # Realm as Operator-Name indicated by a leading 1
+        visited_institution = visited_institution.lstrip('2')  # Realm as Mobile Country Code indicated by a leading 2
         if not visited_institution in cache:
             visited_realm, created = EduroamRealm.objects.get_or_create(realm=visited_institution)
             cache[visited_institution] = visited_realm
