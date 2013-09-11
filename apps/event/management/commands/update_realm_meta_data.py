@@ -14,6 +14,16 @@ class Command(NoArgsCommand):
     help = 'Parses an xml meta data file and updates the existing realms.'
 
     def handle_noargs(self, **options):
+        # Start by matching realms with unknown country to already existing countries
+        default_country, created = Country.objects.get_or_create(country_code='0')
+        for realm in default_country.country_realms.all():
+            country_code = realm.realm.split('.')[-1]
+            try:
+                country = Country.objects.get(country_code=country_code)
+                realm.country = country
+                realm.save()
+            except Country.DoesNotExist:
+                pass
         try:
             from django.conf import settings
             meta_data = settings.EDUROAM_META_DATA
