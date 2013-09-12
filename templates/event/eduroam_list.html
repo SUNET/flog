@@ -36,7 +36,9 @@
             <h4>Visited</h4>
             <ul class="unstyled">
                 {% for realm in realms %}
-                    <li><a href="to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    {% if realm.institution_events.exists %}
+                        <li><a href="to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         </div>
@@ -44,7 +46,9 @@
             <h4>Came from</h4>
             <ul class="unstyled">
                 {% for realm in realms %}
-                    <li><a href="from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    {% if realm.realm_events.exists %}
+                        <li><a href="from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         </div>
