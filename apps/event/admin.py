@@ -1,7 +1,8 @@
 __author__ = 'lundberg'
 
 from django.contrib import admin
-from apps.event.models import Country, Event, Entity, DailyEventAggregation, EduroamEvent, EduroamRealm
+from apps.event.models import Country, Event, Entity, DailyEventAggregation
+from apps.event.models import EduroamEvent, EduroamRealm, DailyEduroamEventAggregation
 
 
 class CountryAdmin(admin.ModelAdmin):
@@ -38,6 +39,14 @@ class EduroamEventAdmin(admin.ModelAdmin):
     list_filter = ('successful',)
 
 admin.site.register(EduroamEvent, EduroamEventAdmin)
+
+
+class DailyEduroamEventAggregationAdmin(admin.ModelAdmin):
+    date_hierarchy = 'date'
+    list_display = ('date', 'realm_country', 'realm', 'visited_country', 'visited_institution', 'calling_station_id')
+    list_filter = ('realm_country', 'visited_country',)
+
+admin.site.register(DailyEduroamEventAggregation, DailyEduroamEventAggregationAdmin)
 
 
 class EduroamRealmAdmin(admin.ModelAdmin):

@@ -8,7 +8,8 @@ from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
 import gc
-from apps.event.models import Entity, Event, DailyEventAggregation, EduroamRealm, EduroamEvent
+from apps.event.models import Entity, Event, DailyEventAggregation
+from apps.event.models import EduroamRealm, EduroamEvent, DailyEduroamEventAggregation
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -242,16 +243,15 @@ def get_auth_flow_data(start_time, end_time, protocol):
 def get_eduroam_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = EduroamEvent.objects.filter(ts__range=(start_time, end_time), successful=True).values(
-            'realm__realm', 'visited_institution__realm', 'visited_country__name', 'realm__country__name').annotate(
-                Count('id'))
+        qs = DailyEduroamEventAggregation.objects.filter(date__range=(start_time.date(), end_time.date())).values(
+            'realm', 'realm_country', 'visited_institution', 'visited_country').annotate(Count('id'))
         nodes = {}
         links = {}
         for e in qs:
-            from_realm = e['realm__realm']
-            to_realm = e['visited_institution__realm']
-            from_country = e['realm__country__name']
-            to_country = e['visited_country__name']
+            from_realm = e['realm']
+            to_realm = e['visited_institution']
+            from_country = e['realm_country']
+            to_country = e['visited_country']
             realm_keys = ('from-%s' % from_realm, 'to-%s' % to_realm)
             country_keys = ('from-%s' % from_country, 'to-%s' % to_country)
             links[realm_keys] = {
