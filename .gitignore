@@ -2,6 +2,7 @@ logs
 .idea
 *.log
 env
+db
 
 *.py[cod]
 
