@@ -109,6 +109,22 @@ class EduroamEvent(models.Model):
                                          self.visited_institution, self.calling_station_id, self.successful)
 
 
+class DailyEduroamEventAggregation(models.Model):
+
+    class Meta:
+        unique_together = ('date', 'realm', 'visited_institution', 'calling_station_id')
+
+    date = DateField(db_index=True)
+    realm = CharField(max_length=200)
+    visited_institution = CharField(max_length=200)
+    calling_station_id = CharField(max_length=128)
+    realm_country = CharField(max_length=200)
+    visited_country = CharField(max_length=200)
+
+    def __unicode__(self):
+        return '%s %s --> %s' % (self.date, self.realm, self.visited_institution)
+
+
 def import_websso_events(event, cache, batch):
     try:
         logging.debug(event)

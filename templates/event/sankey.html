@@ -139,7 +139,7 @@
                 $("#no-data").toggle(false);
                 chart.toggle(true);
                 // Graph
-                generateGraph(data, 940, data.nodes.length * 20)
+                generateGraph(data, 940, data.nodes.length * 10);
                 waitingFor(spinner, false);
             } else {
                 waitingFor(spinner, false);
@@ -163,12 +163,15 @@
         today = new Date();
         slider_opt = {
             bounds:{
-                min: new Date(2013, 0, 1),
-                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1)
+                min: new Date(2013, 0, 1, 0, 0, 0),
+                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-1, 23, 59, 59)
             },
             defaultValues:{
-                min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_min }}),
-                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_max }})
+                min: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_min }}, 0, 0, 0),
+                max: new Date(today.getFullYear(), today.getMonth(), today.getDate()-{{ default_max }}, 0, 0, 0)
+            },
+            step:{
+                days: 1
             },
             wheelMode: "scroll"
         };
@@ -178,7 +181,7 @@
             var dateValues = $("#dates").dateRangeSlider("values");
             var start = dateValues.min;
             // Add 24h to end date as time is set to 00:00:00 as standard
-            var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate()+1);
+            var end = new Date(dateValues.max.getFullYear(), dateValues.max.getMonth(), dateValues.max.getDate(), 23, 59, 59);
             var protocol = "{{ protocol }}";
             getData(start, end, protocol);
         });
