@@ -63,6 +63,18 @@ def queryset_iterator(queryset, chunksize=100000):
         gc.collect()
 
 
+def jsdt2pydt(jsdt):
+    """
+    Takes a date and time string formatted as javascript seemed fit.
+    Returns datetime object.
+    """
+    try:
+        dt = dtparser.parse(jsdt)
+    except ValueError:
+        dt = dtparser.parse(' '.join(jsdt.split()[:6]))
+    return dt
+
+
 def index(request):
     return render_to_response('event/index.html', {},
                               context_instance=RequestContext(request))
@@ -87,8 +99,8 @@ def by_rp(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'origin'
     if request.POST:
-        start_time = localtime(dtparser.parse(request.POST['start']))
-        end_time = localtime(dtparser.parse(request.POST['end']))
+        start_time = localtime(jsdt2pydt(request.POST['start']))
+        end_time = localtime(jsdt2pydt(request.POST['end']))
         protocol = request.POST['protocol']
         data = cache.get('by-rp-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol), False)
         if not data:
@@ -121,8 +133,8 @@ def by_origin(request, pk):
     entity = get_object_or_404(Entity, pk=pk)
     cross_type = 'rp'
     if request.POST:
-        start_time = localtime(dtparser.parse(request.POST['start']))
-        end_time = localtime(dtparser.parse(request.POST['end']))
+        start_time = localtime(jsdt2pydt(request.POST['start']))
+        end_time = localtime(jsdt2pydt(request.POST['end']))
         protocol = request.POST['protocol']
         data = cache.get('by-origin-%s-%s-%s-%s' % (pk, start_time.date(), end_time.date(), protocol), False)
         if not data:
@@ -155,8 +167,8 @@ def to_realm(request, pk):
     realm = get_object_or_404(EduroamRealm, pk=pk)
     cross_type = 'from'
     if request.POST:
-        start_time = localtime(dtparser.parse(request.POST['start']))
-        end_time = localtime(dtparser.parse(request.POST['end']))
+        start_time = localtime(jsdt2pydt(request.POST['start']))
+        end_time = localtime(jsdt2pydt(request.POST['end']))
         data = cache.get('to-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
@@ -187,8 +199,8 @@ def from_realm(request, pk):
     realm = get_object_or_404(EduroamRealm, pk=pk)
     cross_type = 'to'
     if request.POST:
-        start_time = localtime(dtparser.parse(request.POST['start']))
-        end_time = localtime(dtparser.parse(request.POST['end']))
+        start_time = localtime(jsdt2pydt(request.POST['start']))
+        end_time = localtime(jsdt2pydt(request.POST['end']))
         data = cache.get('from-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
@@ -291,8 +303,8 @@ def get_eduroam_auth_flow_data(start_time, end_time, protocol):
 @ensure_csrf_cookie
 def auth_flow(request, protocol=None):
     if request.POST:
-        start_time = localtime(dtparser.parse(request.POST['start']))
-        end_time = localtime(dtparser.parse(request.POST['end']))
+        start_time = localtime(jsdt2pydt(request.POST['start']))
+        end_time = localtime(jsdt2pydt(request.POST['end']))
         protocol = request.POST['protocol']
         if protocol == 'eduroam':
             data = get_eduroam_auth_flow_data(start_time, end_time, protocol)
