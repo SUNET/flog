@@ -17,11 +17,11 @@ class Command(BaseCommand):
             if args[0] == 'yesterday':
                 today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
                 yesterday = today - timedelta(days=1)
-                qs = EduroamEvent.objects.filter(ts__range=(yesterday, today)).extra(
+                qs = EduroamEvent.objects.filter(ts__range=(yesterday, today), successful=True).extra(
                     {'date': 'date(ts)'}).values('date', 'realm__realm', 'visited_institution__realm',
                                                  'visited_country__name', 'realm__country__name', 'calling_station_id')
             elif args[0] == 'all':
-                qs = EduroamEvent.objects.all().extra({'date': 'date(ts)'}).values(
+                qs = EduroamEvent.objects.filter(successful=True).extra({'date': 'date(ts)'}).values(
                     'date', 'realm__realm', 'visited_institution__realm', 'visited_country__name',
                     'realm__country__name', 'calling_station_id')
 
