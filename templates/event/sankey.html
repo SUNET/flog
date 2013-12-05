@@ -149,6 +149,7 @@
         }, "json");
     }
     $(document).ready(function() {
+        $("#info").popover({'placement': 'left', 'trigger': 'hover', 'html': true});
         $("#no-data").toggle(false);
         $("#chart").toggle(false);
         $.ajaxSetup({
@@ -190,7 +191,14 @@
 {% endblock %}
 {% block main %}
 <div class="page-header">
-    <a href="../"><h3>Authentication flow in SWAMID</h3></a>
+    <a href="../"><h3>Authentication flow in SWAMID <small>{% if protocol == 'eduroam' %}eduroam{% else %}WebSSO{% endif %}</small></h3></a>
+</div>
+ <div class="pull-right">
+    {% if protocol == 'eduroam' %}
+        <a id="info" data-content="<p>This diagram shows successful authentication attempts for a calling station ID and a visited realm.</p><p>The unique combination of calling station ID and visited realm is only counted once per day.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
+    {% else %}
+        <a id="info" data-content="<p>This diagram shows the total requests each SP sent to an IDP during the chosen time span.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
+    {% endif %}
 </div>
 <div class="rangeslider span7 offset2">
     <div id="dates"></div>
