@@ -14,7 +14,7 @@ admin.site.register(Country, CountryAdmin)
 class EventAdmin(admin.ModelAdmin):
     date_hierarchy = 'ts'
     list_display = ('ts', 'origin', 'rp', 'protocol')
-    list_filter = ('protocol',)
+    list_filter = ('protocol', 'origin', 'rp')
 
 admin.site.register(Event, EventAdmin)
 
