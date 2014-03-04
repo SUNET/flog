@@ -71,7 +71,7 @@ def format_websso_data(m):
 
 
 def format_eduroam_data(m):
-    ts = ' '.join(m.group('meta').split()[:3])
+    ts = m.group('meta').split()[0]
     data = [
         format_timestamp(ts),
         'eduroam',
