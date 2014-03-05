@@ -12,19 +12,23 @@ from datetime import datetime, timedelta
 
 
 class Command(BaseCommand):
-    args = 'yesterday|all'
+    args = 'n|all'
     help = 'Removes duplicated eduroam events'
 
     def handle(self, *args, **options):
         try:
-            if args[0] == 'yesterday':
-                today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
-                yesterday = today - timedelta(days=1)
-                successful_events = EduroamEvent.objects.filter(ts__range=(yesterday, today), successful=True)
-                fail_events = EduroamEvent.objects.filter(ts__range=(yesterday, today), successful=False)
-            elif args[0] == 'all':
+            if args[0] == 'all':
                 successful_events = EduroamEvent.objects.filter(successful=True)
                 fail_events = EduroamEvent.objects.filter(successful=False)
+            else:
+                try:
+                    days = int(args[0])
+                    today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
+                    n_days_before = today - timedelta(days=days)
+                    successful_events = EduroamEvent.objects.filter(ts__range=(n_days_before, today), successful=True)
+                    fail_events = EduroamEvent.objects.filter(ts__range=(n_days_before, today), successful=False)
+                except ValueError:
+                    raise CommandError('%s is not an integer or "all".' % args[0])
 
             for event in successful_events:
                 qs = EduroamEvent.objects.filter(ts__lt=event.ts + timedelta(minutes=5),
@@ -44,4 +48,4 @@ class Command(BaseCommand):
 
         except IndexError:
             raise CommandError('Please run the command as: \
-"remove_duplicated_eduroam_events yesterday" or "remove_duplicated_eduroam_events all"')
+"remove_duplicated_eduroam_events [n days]" or "remove_duplicated_eduroam_events all"')

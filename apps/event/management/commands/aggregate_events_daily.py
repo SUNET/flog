@@ -9,20 +9,23 @@ from datetime import datetime, timedelta
 
 
 class Command(BaseCommand):
-    args = 'yesterday|all'
+    args = 'n|all'
     help = 'Aggregates events per protocol, per day'
 
     def handle(self, *args, **options):
         try:
-            if args[0] == 'yesterday':
-                today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
-                yesterday = today - timedelta(days=1)
-                qs = Event.objects.filter(ts__range=(yesterday, today)).extra(
-                    {'date': 'date(ts)'}).values(
-                        'date', 'origin__uri', 'rp__uri', 'protocol').annotate(num_events=Count('id'))
-            elif args[0] == 'all':
+            if args[0] == 'all':
                 qs = Event.objects.all().extra({'date': 'date(ts)'}).values(
                     'date', 'origin__uri', 'rp__uri', 'protocol').annotate(num_events=Count('id'))
+            else:
+                try:
+                    days = int(args[0])
+                    today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
+                    n_days_before = today - timedelta(days=days)
+                    qs = Event.objects.filter(ts__range=(n_days_before, today)).extra({'date': 'date(ts)'}).values(
+                        'date', 'origin__uri', 'rp__uri', 'protocol').annotate(num_events=Count('id'))
+                except ValueError:
+                    raise CommandError('%s is not an integer or "all".' % args[0])
 
             for event_aggr in qs:
                 de, created = DailyEventAggregation.objects.get_or_create(
@@ -37,4 +40,4 @@ class Command(BaseCommand):
                     de.save()
         except IndexError:
             raise CommandError('Please run the command as: \
-"aggregate_events_daily yesterday" or "aggregate_events_daily all"')
+"aggregate_events_daily [n days]" or "aggregate_events_daily all"')

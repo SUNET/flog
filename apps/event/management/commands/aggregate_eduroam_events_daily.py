@@ -9,21 +9,26 @@ from datetime import datetime, timedelta
 
 
 class Command(BaseCommand):
-    args = 'yesterday|all'
+    args = 'n|all'
     help = 'Aggregates Eduroam events per calling station ID, per day'
 
     def handle(self, *args, **options):
         try:
-            if args[0] == 'yesterday':
-                today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
-                yesterday = today - timedelta(days=1)
-                qs = EduroamEvent.objects.filter(ts__range=(yesterday, today), successful=True).extra(
-                    {'date': 'date(ts)'}).values('date', 'realm__realm', 'visited_institution__realm',
-                                                 'visited_country__name', 'realm__country__name', 'calling_station_id')
-            elif args[0] == 'all':
+            if args[0] == 'all':
                 qs = EduroamEvent.objects.filter(successful=True).extra({'date': 'date(ts)'}).values(
                     'date', 'realm__realm', 'visited_institution__realm', 'visited_country__name',
                     'realm__country__name', 'calling_station_id')
+            else:
+                try:
+                    days = int(args[0])
+                    today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
+                    n_days_before = today - timedelta(days=days)
+                    qs = EduroamEvent.objects.filter(ts__range=(n_days_before, today), successful=True).extra(
+                        {'date': 'date(ts)'}).values('date', 'realm__realm', 'visited_institution__realm',
+                                                     'visited_country__name', 'realm__country__name',
+                                                     'calling_station_id')
+                except ValueError:
+                    raise CommandError('%s is not an integer or "all".' % args[0])
 
             for event_aggr in qs:
                 de, created = DailyEduroamEventAggregation.objects.get_or_create(
@@ -43,4 +48,4 @@ class Command(BaseCommand):
 
         except IndexError:
             raise CommandError('Please run the command as: \
-"aggregate_eduroam_events_daily yesterday" or "aggregate_eduroam_events_daily all"')
+"aggregate_eduroam_events_daily [n days]" or "aggregate_eduroam_events_daily all"')
