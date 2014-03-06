@@ -92,33 +92,23 @@ def format_eduroam_data(m):
 
 def batch_importer(f, url):
     batch = []
-    for line in f:
-        websso_match = websso.search(line)
-        if websso_match:
-            batch.append(format_websso_data(websso_match))
-        else:
-            eduroam_match = eduroam.search(line)
-            if eduroam_match:
-                batch.append(format_eduroam_data(eduroam_match))
-        if len(batch) > 1000:  # Approx. 300kb in file size
-            print post_data(url, '\n'.join(batch))
-            batch = []
-    post_data(url, '\n'.join(batch))
-    return True
-
-
-def single_importer(f, url):
     try:
         for line in f:
             websso_match = websso.search(line)
             if websso_match:
-                print post_data(url, format_websso_data(websso_match) + '\n')
+                batch.append(format_websso_data(websso_match))
             else:
                 eduroam_match = eduroam.search(line)
                 if eduroam_match:
-                    print post_data(url, format_eduroam_data(eduroam_match) + '\n')
+                    batch.append(format_eduroam_data(eduroam_match))
+            if len(batch) > 200:  # Approx. 60kb in file size
+                print post_data(url, '\n'.join(batch))
+                batch = []
+        return post_data(url, '\n'.join(batch))
     except (KeyboardInterrupt, TypeError) as e:
         raise e
+    finally:
+        print post_data(url, '\n'.join(batch))
 
 
 def main():
@@ -156,13 +146,13 @@ def main():
                 while True:
                     try:
                         f = open(args.pipe)
-                        single_importer(f, args.url)
+                        batch_importer(f, args.url)
                     except IOError as e:
                         if args.foreground:
                             print e
         else:
             # Read from stdin and post every found line to URL
-            single_importer(args.infiles, args.url)
+            batch_importer(args.infiles, args.url)
     except TypeError as e:
         print 'Input not as expected.'
         print e
