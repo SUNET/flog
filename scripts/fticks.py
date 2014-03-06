@@ -25,7 +25,7 @@ websso = re.compile(r'''
                 (?P<version>[\d+][\.]?[\d]*)
                 \#TS=(?P<ts>[\w]+)
                 \#RP=(?P<rp>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in RP until the F-TICKS bug gets fixed
-                \#AP=(?P<ap>[\w/:_@\.\?\-]+)
+                \#AP=(?P<ap>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in RP until the F-TICKS bug gets fixed
                 \#PN=(?P<pn>[\w]+)
                 \#AM=(?P<am>[\w:\.]*)
                 ''', re.VERBOSE)
@@ -64,16 +64,21 @@ def format_websso_data(m):
         format_timestamp(m.group('ts')),
         '3',                             # 0:'Unknown', 1:'WAYF', 2:'Discovery', 3:'SAML2'
         ''.join(m.group('rp').split()),  # Hack until extra whitespace bug in F-TICKS get fixed.
-        m.group('ap'),
+        ''.join(m.group('ap').split()),  # Hack until extra whitespace bug in F-TICKS get fixed.
         m.group('pn')
     ]
     return ';'.join(data)
 
 
 def format_eduroam_data(m):
-    ts = m.group('meta').split()[0]
+    try:
+        # Legacy rsyslog date format "Mar  5 15:22:15"
+        ts = format_timestamp(' '.join(m.group('meta').split()[:3]))
+    except ValueError:
+        # New rsyslog date format "2014-03-06T14:59:04.677583+00:00"
+        ts = format_timestamp(m.group('meta').split()[0])
     data = [
-        format_timestamp(ts),
+        ts,
         'eduroam',
         m.group('version'),
         m.group('realm'),
