@@ -25,7 +25,7 @@ websso = re.compile(r'''
                 (?P<version>[\d+][\.]?[\d]*)
                 \#TS=(?P<ts>[\w]+)
                 \#RP=(?P<rp>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in RP until the F-TICKS bug gets fixed
-                \#AP=(?P<ap>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in RP until the F-TICKS bug gets fixed
+                \#AP=(?P<ap>[\w/:_@\.\?\-\ ]+) # Takes extra whitespace in AP until the F-TICKS bug gets fixed
                 \#PN=(?P<pn>[\w]+)
                 \#AM=(?P<am>[\w:\.]*)
                 ''', re.VERBOSE)
