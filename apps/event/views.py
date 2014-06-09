@@ -8,6 +8,7 @@ from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
 import gc
+import re
 from apps.event.models import Entity, Event, DailyEventAggregation
 from apps.event.models import EduroamRealm, EduroamEvent, DailyEduroamEventAggregation
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
@@ -259,11 +260,18 @@ def get_eduroam_auth_flow_data(start_time, end_time, protocol):
             'realm', 'realm_country', 'visited_institution', 'visited_country').annotate(Count('id'))
         nodes = {}
         links = {}
+        regex = re.compile('Sweden')
         for e in qs:
-            from_realm = e['realm']
-            to_realm = e['visited_institution']
             from_country = e['realm_country']
             to_country = e['visited_country']
+            if regex.match(from_country):  # We only want to show countries to swedish realms ...
+                from_realm = e['realm']
+            else:
+                from_realm = from_country
+            if regex.match(to_country):  # ... and only swedish realms to other countries.
+                to_realm = e['visited_institution']
+            else:
+                to_realm = to_country
             realm_keys = ('from-%s' % from_realm, 'to-%s' % to_realm)
             country_keys = ('from-%s' % from_country, 'to-%s' % to_country)
             links[realm_keys] = {
@@ -291,10 +299,10 @@ def get_eduroam_auth_flow_data(start_time, end_time, protocol):
             nodes[realm_keys[1]] = {'id': realm_keys[1], 'name': to_realm}
             nodes[country_keys[0]] = {'id': country_keys[0], 'name': from_country}
             nodes[country_keys[1]] = {'id': country_keys[1], 'name': to_country}
-        data = {
-            'nodes': nodes.values(),
-            'links': links.values()
-        }
+            data = {
+                'nodes': nodes.values(),
+                'links': links.values()
+            }
         cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
                   data, 60*60*24)  # 24h
     return data
