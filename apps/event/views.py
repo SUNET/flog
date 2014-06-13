@@ -10,7 +10,7 @@ import json
 import gc
 import re
 from apps.event.models import Entity, Event, DailyEventAggregation
-from apps.event.models import EduroamRealm, EduroamEvent, DailyEduroamEventAggregation
+from apps.event.models import Country, EduroamRealm, DailyEduroamEventAggregation
 from django.shortcuts import get_object_or_404, render_to_response, RequestContext
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -89,9 +89,20 @@ def websso_entities(request):
                               context_instance=RequestContext(request))
 
 
-def eduroam_realms(request):
-    realms = EduroamRealm.objects.all()
-    return render_to_response('event/eduroam_list.html', {'realms': realms},
+def eduroam_realms(request, country_name=None):
+    from_country = None
+    to_country = None
+    countries = None
+    if country_name:
+        country = get_object_or_404(Country, name=country_name)
+        from_country = country.country_realms.filter(realm_events__successful=True).order_by('name', 'realm').\
+            values_list('id', 'realm', 'name').distinct()
+        to_country = EduroamRealm.objects.filter(realm_events__visited_country=country, realm_events__successful=True).\
+            order_by('name', 'realm').values_list('id', 'realm', 'name').distinct()
+    else:
+        countries = Country.objects.all().exclude(name='Unknown').order_by('name')
+    return render_to_response('event/eduroam_list.html', {'from_country': from_country, 'to_country': to_country,
+                                                          'countries': countries, 'country_name': country_name},
                               context_instance=RequestContext(request))
 
 

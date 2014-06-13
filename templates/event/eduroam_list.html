@@ -6,7 +6,7 @@
     <div class="page-header">
         <div class="row">
             <div class="span8">
-                <a href="/">
+                <a href="../">
                     <h3>SWAMID Statistics
                         <small>eduroam</small>
                     </h3>
@@ -20,37 +20,60 @@
 {% endblock %}
 
 {% block main %}
-    <div class="row">
-        <div class="span8">
-            <h4>Authentication Flow</h4>
-            <ul class="unstyled">
-                <li><a href="authentication-flow/?min=8&max=1&threshold=0">Last week</a></li>
-                <li><a href="authentication-flow/?min=31&max=1&threshold=0">Last month</a></li>
-                <li><a href="authentication-flow/?min=366&max=1&threshold=0">Last year</a></li>
-                <li><a href="authentication-flow/?threshold=0">Custom</a></li>
-            </ul>
+    {% if not to_country and not from_country %}
+        <div class="row">
+            <div class="span8">
+                <h4>Authentication Flow</h4>
+                <ul class="unstyled">
+                    <li><a href="authentication-flow/?min=8&max=1&threshold=0">Last week</a></li>
+                    <li><a href="authentication-flow/?min=31&max=1&threshold=0">Last month</a></li>
+                    <li><a href="authentication-flow/?min=366&max=1&threshold=0">Last year</a></li>
+                    <li><a href="authentication-flow/?threshold=0">Custom</a></li>
+                </ul>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="span5">
-            <h4>Visited</h4>
-            <ul class="unstyled">
-                {% for realm in realms %}
-                    {% if realm.institution_events.exists %}
-                        <li><a href="to/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
+    {% endif %}
+    {% if to_country or from_country %}
+        <div class="row">
+            {% if to_country %}
+                <div class="span5">
+                    <h4>Visited {{ country_name }}</h4>
+                    <ul class="unstyled">
+                        {% for id, realm, name in to_country %}
+                            <li><a href="../from/{{ id }}/">{{ name }} ({{ realm }})</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% if from_country %}
+                <div class="span5">
+                    <h4>Came from {{ country_name }}</h4>
+                    <ul class="unstyled">
+                        {% for id, realm, name in from_country %}
+                            <li><a href="../from/{{ id }}/">{{ name }} ({{ realm }})</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
         </div>
-        <div class="span5">
-            <h4>Came from</h4>
-            <ul class="unstyled">
-                {% for realm in realms %}
-                    {% if realm.realm_events.exists %}
-                        <li><a href="from/{{ realm.id }}/">{{ realm.name }} ({{ realm }})</a></li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
+    {% endif %}
+    {% if countries %}
+        {% load list_filters %}
+        <div class="row">
+            <div class="span12">
+                <h4>Countries</h4>
+                <div class="row">
+                    {% for column in countries|rows:5 %}
+                        <div class="span2">
+                            <ul class="unstyled">
+                                {% for country in column %}
+                                    <li><a href="{{ country.name }}/">{{ country.name }} ({{ country.country_code }})</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
-    </div>
+    {% endif %}
 {% endblock %}
