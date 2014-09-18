@@ -2,7 +2,6 @@
 __author__ = 'lundberg'
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Count
 from dateutil.tz import tzutc
 from apps.event.models import EduroamEvent, DailyEduroamEventAggregation
 from datetime import datetime, timedelta
@@ -30,7 +29,7 @@ class Command(BaseCommand):
                 except ValueError:
                     raise CommandError('%s is not an integer or "all".' % args[0])
 
-            for event_aggr in qs:
+            for event_aggr in qs.iterator():
                 de, created = DailyEduroamEventAggregation.objects.get_or_create(
                     date=event_aggr['date'],
                     realm=event_aggr['realm__realm'],

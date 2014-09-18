@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 except ValueError:
                     raise CommandError('%s is not an integer or "all".' % args[0])
 
-            for event in successful_events:
+            for event in successful_events.iterator():
                 qs = EduroamEvent.objects.filter(ts__lt=event.ts + timedelta(minutes=5),
                                                  ts__gt=event.ts - timedelta(minutes=5),
                                                  calling_station_id=event.calling_station_id).order_by('ts')
@@ -38,7 +38,7 @@ class Command(BaseCommand):
                     for dup in qs[1:]:
                         dup.delete()
 
-            for event in fail_events:
+            for event in fail_events.iterator():
                 qs = EduroamEvent.objects.filter(ts__lt=event.ts + timedelta(minutes=5),
                                                  ts__gt=event.ts - timedelta(minutes=5),
                                                  calling_station_id=event.calling_station_id).order_by('ts')
