@@ -1,0 +1,8 @@
+Setup flog
+
+Create a .env in the project root from dotenv file.
+
+python manage.py validate --settings=flog.settings.prod
+python manage.py syncdb --settings=flog.settings.prod
+python manage.py migrate --settings=flog.settings.prod
+python manage.py createcachetable flog_cache_table --settings=flog.settings.prod

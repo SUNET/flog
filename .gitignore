@@ -2,7 +2,10 @@ logs
 .idea
 *.log
 env
-db
+.env
+*.db
+SECRET
+flog/static
 
 *.py[cod]
 

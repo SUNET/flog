@@ -1,0 +1,5 @@
+Django>=1.5.0,<=1.5.9
+South==0.8.2
+argparse==1.2.1
+distribute==0.7.3
+python-dateutil==2.1
