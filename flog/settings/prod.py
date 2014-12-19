@@ -11,18 +11,18 @@ from common import *
 dotenv.read_dotenv(join(SITE_ROOT, '.env'))
 
 ########## PROJECT CONFIGURATION
-EDUROAM_META_DATA = environ.get('FLOG_EDUROAM_META_DATA', '')
+EDUROAM_META_DATA = environ.get('EDUROAM_META_DATA', '')
 ########## PROJECT CONFIGURATION
 
 ########## ALLOWED HOSTS CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ['flog.sunet.se', '127.0.0.1']
+ALLOWED_HOSTS = environ.get('ALLOWED_HOSTS', '').split()
 ########## END ALLOWED HOST CONFIGURATION
 
 ########## SENTRY CONFIGURATION
 # Set your DSN value
 RAVEN_CONFIG = {
-    'dsn': environ.get('FLOG_SENTRY_DSN', ''),
+    'dsn': environ.get('SENTRY_DSN', ''),
 }
 INSTALLED_APPS = INSTALLED_APPS + (
     'raven.contrib.django.raven_compat',
@@ -34,16 +34,16 @@ INSTALLED_APPS = INSTALLED_APPS + (
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-host
-EMAIL_HOST = environ.get('FLOG_EMAIL_HOST', '')
+EMAIL_HOST = environ.get('EMAIL_HOST', '')
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-host-password
-EMAIL_HOST_PASSWORD = environ.get('FLOG_EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_PASSWORD = environ.get('EMAIL_HOST_PASSWORD', '')
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-host-user
-EMAIL_HOST_USER = environ.get('FLOG_EMAIL_HOST_USER', '')
+EMAIL_HOST_USER = environ.get('EMAIL_HOST_USER', '')
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-port
-EMAIL_PORT = environ.get('FLOG_EMAIL_PORT', '')
+EMAIL_PORT = environ.get('EMAIL_PORT', '')
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-subject-prefix
 EMAIL_SUBJECT_PREFIX = '[%s] ' % SITE_NAME
@@ -59,12 +59,12 @@ SERVER_EMAIL = EMAIL_HOST_USER
 ########## DATABASE CONFIGURATION
 DATABASES = {
     'default': {
-        'ENGINE': environ.get('FLOG_DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': environ.get('FLOG_DB_NAME', 'flog'),
-        'USER': environ.get('FLOG_DB_USER', 'flog'),
-        'PASSWORD': environ['FLOG_DB_PASSWORD'],
-        'HOST': environ.get('FLOG_DB_HOST', 'localhost'),
-        'PORT': environ.get('FLOG_DB_PORT', '5432')
+        'ENGINE': environ.get('DB_ENGINE', 'django.db.backends.postgresql_psycopg2'),
+        'NAME': environ.get('DB_NAME', 'flog'),
+        'USER': environ.get('DB_USER', 'flog'),
+        'PASSWORD': environ['DB_PASSWORD'],
+        'HOST': environ.get('DB_HOST', 'localhost'),
+        'PORT': environ.get('DB_PORT', '5432')
     }
 }
 ########## END DATABASE CONFIGURATION
@@ -74,8 +74,8 @@ DATABASES = {
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#caches
 CACHES = {
     'default': {
-        'BACKEND': environ.get('FLOG_CACHE_BACKEND', 'django.core.cache.backends.db.DatabaseCache'),
-        'LOCATION': environ.get('FLOG_CACHE_LOCATION', 'flog_cache_table'),
+        'BACKEND': environ.get('CACHE_BACKEND', 'django.core.cache.backends.db.DatabaseCache'),
+        'LOCATION': environ.get('CACHE_LOCATION', 'flog_cache_table'),
     }
 }
 CACHE_MIDDLEWARE_ALIAS = 'default'
