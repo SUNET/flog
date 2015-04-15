@@ -8,6 +8,8 @@ from django.db import models
 from django.db.models.fields import DateTimeField, DateField, URLField, SmallIntegerField,\
     CharField, BooleanField, BigIntegerField
 from django.db.models.fields.related import ForeignKey
+from django.core.cache import cache
+from django.utils import dateparse
 import logging
 
 
@@ -125,7 +127,7 @@ class DailyEduroamEventAggregation(models.Model):
         return '%s %s --> %s' % (self.date, self.realm, self.visited_institution)
 
 
-def import_websso_events(event, cache, batch):
+def import_websso_events(event, batch):
     try:
         logging.debug(event)
         (ts, protocol, rp_uri, origin_uri, principal) = event
@@ -139,66 +141,80 @@ def import_websso_events(event, cache, batch):
         elif protocol == 'W':
             p = Event.WAYF
 
-        if not rp_uri in cache:
+        rp = cache.get(rp_uri)
+        if not rp:
             rp, created = Entity.objects.get_or_create(uri=rp_uri)
             if not rp.is_rp:
                 rp.is_rp = True
                 rp.save()
-            cache[rp_uri] = rp
-        rp = cache[rp_uri]
+            cache.set(rp_uri, rp)
 
-        if not origin_uri in cache:
+        origin = cache.get(origin_uri)
+        if not origin:
             origin, created = Entity.objects.get_or_create(uri=origin_uri)
             if not origin.is_idp:
                 origin.is_idp = True
                 origin.save()
-            cache[origin_uri] = origin
-        origin = cache[origin_uri]
+            cache.set(origin_uri, origin)
 
         batch.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
     except Exception, exc:
         logging.error(exc)
-    return cache, batch
+    return batch
 
 
-def import_eduroam_events(event, cache, batch):
+def import_eduroam_events(event, batch):
     try:
         logging.debug(event)
         (ts, eduroam, version, event_realm, visited_country, visited_institution, calling_station_id, result) = event
+
+        # Check if any event with identical calling_station_id and visited_institution
+        # has been seen in the last 5 minutes. If so disregard that event
+        csi_last_event = cache.get(calling_station_id)
+        if csi_last_event:
+            # A cache hit should filter duplicate events in normal operation
+            # but even if we hit the cache we need to check the timestamps
+            # due to batch inserting logs after downtime.
+            last_dt = dateparse.parse_datetime(csi_last_event)
+            current_dt = dateparse.parse_datetime(ts)
+            diff = last_dt - current_dt
+            if int(abs(diff.total_seconds())) <= 300:
+                return batch
+
         success = False
         if result.lower() == 'ok':
             success = True
 
-        event_realm = event_realm.lower()
-        if not event_realm in cache:
-            realm, created = EduroamRealm.objects.get_or_create(realm=event_realm)
-            cache[event_realm] = realm
-        realm = cache[event_realm]
-
-        visited_country = visited_country.lower()
-        if not visited_country in cache:
-            country, created = Country.objects.get_or_create(country_code=visited_country)
-            cache[visited_country] = country
-        country = cache[visited_country]
-
         visited_institution = visited_institution.lower()
         visited_institution = visited_institution.lstrip('1')  # Realm as Operator-Name indicated by a leading 1
         visited_institution = visited_institution.lstrip('2')  # Realm as Mobile Country Code indicated by a leading 2
-        if not visited_institution in cache:
+        visited_realm = cache.get(visited_institution)
+        if not visited_realm:
             visited_realm, created = EduroamRealm.objects.get_or_create(realm=visited_institution)
-            cache[visited_institution] = visited_realm
-        visited_realm = cache[visited_institution]
+            cache.set(visited_institution, visited_realm)
+
+        event_realm = event_realm.lower()
+        realm = cache.get(event_realm)
+        if not realm:
+            realm, created = EduroamRealm.objects.get_or_create(realm=event_realm)
+            cache.set(event_realm, realm)
+
+        visited_country = visited_country.lower()
+        country = cache.get(visited_country)
+        if not country:
+            country, created = Country.objects.get_or_create(country_code=visited_country)
+            cache.set(visited_country, country)
 
         batch.append(EduroamEvent(ts=ts, version=version, realm=realm, visited_country=country,
                                   visited_institution=visited_realm, calling_station_id=calling_station_id,
                                   successful=success))
+        cache.set(calling_station_id, ts, 300)
     except Exception, exc:
         logging.error(exc)
-    return cache, batch
+    return batch
 
 
 def import_events(lines):
-    websso_cache, eduroam_cache = {}, {}
     websso_batch, eduroam_batch = [], []
     for line in lines.split('\n'):
         # Batch create
@@ -211,9 +227,9 @@ def import_events(lines):
         try:
             event = line.split(';')
             if event[1] == 'eduroam':
-                eduroam_cache, eduroam_batch = import_eduroam_events(event, eduroam_cache, eduroam_batch)
+                eduroam_batch = import_eduroam_events(event, eduroam_batch)
             else:
-                websso_cache, websso_batch = import_websso_events(event, websso_cache, websso_batch)
+                websso_batch = import_websso_events(event, websso_batch)
         except (ValueError, IndexError) as exc:
             logging.error(exc)
     # Batch create
