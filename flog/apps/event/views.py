@@ -89,20 +89,21 @@ def websso_entities(request):
                               context_instance=RequestContext(request))
 
 
-def eduroam_realms(request, country_name=None):
-    from_country = None
-    to_country = None
-    countries = None
-    if country_name:
-        country = get_object_or_404(Country, name=country_name)
-        from_country = country.country_realms.filter(realm_events__successful=True).order_by('name', 'realm').\
-            values_list('id', 'realm', 'name').distinct()
-        to_country = EduroamRealm.objects.filter(realm_events__visited_country=country, realm_events__successful=True).\
-            order_by('name', 'realm').values_list('id', 'realm', 'name').distinct()
-    else:
+def eduroam_realms(request, country_code=None):
+    if not country_code:
         countries = Country.objects.all().exclude(name='Unknown').order_by('name')
-    return render_to_response('event/eduroam_list.html', {'from_country': from_country, 'to_country': to_country,
-                                                          'countries': countries, 'country_name': country_name},
+        return render_to_response('event/eduroam_list.html',
+                                  {'from_country': None, 'to_country': None, 'countries': countries,
+                                   'country_name': None},
+                                  context_instance=RequestContext(request))
+    country = get_object_or_404(Country, country_code=country_code)
+    from_country = country.country_realms.filter(realm_events__successful=True).order_by('name', 'realm').\
+        values_list('id', 'realm', 'name').distinct()
+    to_country = EduroamRealm.objects.filter(realm_events__visited_country=country, realm_events__successful=True).\
+        order_by('name', 'realm').values_list('id', 'realm', 'name').distinct()
+    return render_to_response('event/eduroam_list.html',
+                              {'from_country': from_country, 'to_country': to_country, 'countries': None,
+                               'country_name': country.name},
                               context_instance=RequestContext(request))
 
 
