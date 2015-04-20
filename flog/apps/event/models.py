@@ -168,8 +168,13 @@ def import_eduroam_events(event, batch):
         logging.debug(event)
         (ts, eduroam, version, event_realm, visited_country, visited_institution, calling_station_id, result) = event
 
+        # Disregard failed authentications
+        success = True
+        if result.lower() != 'ok':
+            return batch
+
         # Check if any event with identical calling_station_id and visited_institution
-        # has been seen in the last 5 minutes. If so disregard that event
+        # has been seen in the last 5 minutes. If so, disregard that event
         csi_last_event = cache.get(calling_station_id)
         if csi_last_event:
             # A cache hit should filter duplicate events in normal operation
@@ -180,10 +185,6 @@ def import_eduroam_events(event, batch):
             diff = last_dt - current_dt
             if int(abs(diff.total_seconds())) <= 300:
                 return batch
-
-        success = False
-        if result.lower() == 'ok':
-            success = True
 
         visited_institution = visited_institution.lower()
         visited_institution = visited_institution.lstrip('1')  # Realm as Operator-Name indicated by a leading 1
