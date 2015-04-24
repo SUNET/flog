@@ -10,4 +10,6 @@ urlpatterns = patterns('apps.api.views',
     url(r'^import$',view='iprt'),
     url(r'^eduroam/checkrealm/$',view='eduroamcheck'),
     url(r'^websso/checkentity/$', view='webssocheck'),
+    url(r'^eduroam/latest/$', view='importcheck', kwargs={'event_type': 'eduroam'}),
+    url(r'^websso/latest/$', view='importcheck', kwargs={'event_type': 'websso'}),
 )

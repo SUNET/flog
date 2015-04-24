@@ -1,15 +1,15 @@
-'''
+"""
 Created on Apr 13, 2012
 
 @author: leifj, lundberg
-'''
+"""
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.exceptions import ObjectDoesNotExist
 from apps.event.models import import_events
-from apps.event.models import Entity, EduroamRealm
+from apps.event.models import Entity, EduroamRealm, Event, EduroamEvent
 import json
 from datetime import datetime, timedelta
 
@@ -86,5 +86,27 @@ def webssocheck(request):
         result['latest_rp_event'] = entity.rp_events.filter(ts__gt=now-timedelta(days=1)).latest('ts').ts
     except ObjectDoesNotExist:
         pass
+    return HttpResponse(json.dumps(result, cls=DjangoJSONEncoder), status=201, mimetype='application/json')
+
+
+def importcheck(request, event_type):
+    if event_type == "websso":
+        latest_event = Event.objects.latest('ts')
+    elif event_type == "eduroam":
+        latest_event = EduroamEvent.objects.latest('ts')
+    else:
+        msg = '''
+            This is a monitor end point.
+            '''
+        result = {
+            'status': 404,
+            'error': 'Could not find event type %s' % event_type,
+            'message': normalize_whitespace(msg)
+        }
+        return HttpResponse(json.dumps(result, cls=DjangoJSONEncoder), status=404, mimetype='application/json')
+    result = {
+        'event_type': event_type,
+        'latest_event': latest_event.ts
+    }
     return HttpResponse(json.dumps(result, cls=DjangoJSONEncoder), status=201, mimetype='application/json')
 
