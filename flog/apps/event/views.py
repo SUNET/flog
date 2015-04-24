@@ -16,7 +16,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models.aggregates import Count, Sum
 from django.core.cache import cache
-from django.db import connections, transaction
+from django.db import connections, transaction, DatabaseError
 
 
 def get_protocol(protocol):
@@ -30,14 +30,18 @@ def get_protocol(protocol):
         return protocols[protocol]
     return Event.SAML2
 
+
 # Clear cache for sqlite (workaround)
 def flush_cache():
     # This works as advertised on the memcached cache:
     cache.clear()
     # This manually purges the SQLite/postgres cache:
-    cursor = connections['default'].cursor()
-    cursor.execute('DELETE FROM flog_cache_table')
-    transaction.commit_unless_managed(using='default')
+    try:
+        cursor = connections['default'].cursor()
+        cursor.execute('DELETE FROM flog_cache_table')
+        transaction.commit_unless_managed(using='default')
+    except DatabaseError:
+        pass  # No database cache used
 
 
 def queryset_iterator(queryset, chunksize=100000):
