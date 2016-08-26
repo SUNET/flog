@@ -13,6 +13,7 @@ import sys
 import dateutil.parser
 import dateutil.tz
 import daemon
+import datetime
 
 # F-TICKS importer for flog
 #
@@ -52,7 +53,10 @@ def post_data(url, data):
 
 
 def format_timestamp(ts):
-    dt = dateutil.parser.parse(ts)
+    try:
+        dt = dateutil.parser.parse(ts)
+    except ValueError:
+        dt = datetime.datetime.fromtimestamp(int(ts))
     if not dt.tzinfo:
         dt.replace(tzinfo=dateutil.tz.tzutc())
     return dt.isoformat(sep=' ')
