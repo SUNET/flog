@@ -1,7 +1,7 @@
 FROM ubuntu:14.04
 MAINTAINER Johan Lundberg "lundberg@nordu.net"
 
-RUN apt-get -qq update && apt-get install -y python-dev python-setuptools supervisor git-core libpq-dev cron
+RUN apt-get -qq update && apt-get -y dist-upgrade && apt-get install -y python-dev python-setuptools supervisor git-core libpq-dev cron
 RUN easy_install pip
 RUN pip install virtualenv
 RUN pip install uwsgi
