@@ -2,3 +2,7 @@
 logs
 scripts
 doc
+db_backup
+ssl
+env
+SECRET

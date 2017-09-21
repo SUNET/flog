@@ -135,7 +135,7 @@
         var spinner = $("#spinner");
         waitingFor(spinner, true);
         $.post(".", {start: startTime.toString(), end: endTime.toString(), protocol: protocol}, function(data) {
-            if (data.nodes.length != 0 || data.links.length != 0) {
+            if (data && (data.nodes.length != 0 || data.links.length != 0)) {
                 $("#no-data").toggle(false);
                 chart.toggle(true);
                 // Graph
