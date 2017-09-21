@@ -3,3 +3,4 @@ psycopg2==2.5
 raven==3.5.1
 django-dotenv==1.2
 python-memcached==1.54
+gunicorn

@@ -262,12 +262,13 @@ LOGGING = {
         },
         'console': {
             'level': 'DEBUG',
-            'class': 'logging.StreamHandler'
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         }
     },
     'loggers': {
         '': {
-            'handlers': ['debugfile', 'errorfile'],
+            'handlers': ['console', 'debugfile', 'errorfile'],
             'level': 'DEBUG',
             'propagate': True,
         },

@@ -1,2 +1,4 @@
 .git
-logs/*
+logs
+scripts
+doc
