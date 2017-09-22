@@ -231,8 +231,8 @@ def get_auth_flow_data(start_time, end_time, protocol):
 def get_eduroam_auth_flow_data(start_time, end_time, protocol):
     data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
     if not data:
-        qs = DailyEduroamEventAggregation.objects.filter(date__range=(start_time.date(), end_time.date())).values(
-            'realm', 'realm_country', 'visited_institution', 'visited_country').annotate(Count('id'))
+        qs = DailyEduroamEventAggregation.objects.all().filter(date__range=(start_time.date(), end_time.date())).values(
+            'realm', 'realm_country', 'visited_institution', 'visited_country').order_by().annotate(Count('id'))
         nodes = {}
         links = {}
         regex = re.compile('Sweden')
