@@ -3,15 +3,15 @@ Created on Apr 13, 2012
 
 @author: leifj
 """
+from __future__ import absolute_import
 
 from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
-import gc
 import re
-from apps.event.models import Entity, Event, DailyEventAggregation
-from apps.event.models import Country, EduroamRealm, DailyEduroamEventAggregation
-from django.shortcuts import get_object_or_404, render_to_response, RequestContext
+from flog.apps.event.models import Entity, Event, DailyEventAggregation
+from flog.apps.event.models import Country, EduroamRealm, DailyEduroamEventAggregation
+from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models.aggregates import Count, Sum
@@ -44,30 +44,6 @@ def flush_cache():
         pass  # No database cache used
 
 
-def queryset_iterator(queryset, chunksize=100000):
-    """
-    Iterate over a Django Queryset ordered by the primary key
-
-    This method loads a maximum of chunksize (default: 100000) rows in it's
-    memory at the same time while django normally would load all rows in it's
-    memory. Using the iterator() method only causes it to not preload all the
-    classes.
-
-    Note that the implementation of the iterator does not support ordered query sets.
-    """
-    pk = 0
-    try:
-        last_pk = queryset.order_by('-pk')[0].pk
-    except IndexError:
-        raise StopIteration
-    queryset = queryset.order_by('pk')
-    while pk < last_pk:
-        for row in queryset.filter(pk__gt=pk)[:chunksize]:
-            pk = row.pk
-            yield row
-        gc.collect()
-
-
 def jsdt2pydt(jsdt):
     """
     Takes a date and time string formatted as javascript seemed fit.
@@ -81,34 +57,27 @@ def jsdt2pydt(jsdt):
 
 
 def index(request):
-    return render_to_response('event/index.html', {},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/index.html', {})
 
 
 def websso_entities(request):
     idp = Entity.objects.filter(is_idp=True).all()
     rp = Entity.objects.filter(is_rp=True).all()
-    return render_to_response('event/websso_list.html',
-                              {'rps': rp.all(), 'idps': idp.all()},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/websso_list.html', {'rps': rp.all(), 'idps': idp.all()})
 
 
 def eduroam_realms(request, country_code=None):
     if not country_code:
         countries = Country.objects.all().exclude(name='Unknown').order_by('name')
-        return render_to_response('event/eduroam_list.html',
-                                  {'from_country': None, 'to_country': None, 'countries': countries,
-                                   'country_name': None},
-                                  context_instance=RequestContext(request))
+        return render(request, 'event/eduroam_list.html', {'from_country': None, 'to_country': None,
+                                                           'countries': countries, 'country_name': None})
     country = get_object_or_404(Country, country_code=country_code)
     from_country = country.country_realms.filter(realm_events__successful=True).order_by('name', 'realm').\
         values_list('id', 'realm', 'name').distinct()
     to_country = EduroamRealm.objects.filter(realm_events__visited_country=country, realm_events__successful=True).\
         order_by('name', 'realm').values_list('id', 'realm', 'name').distinct()
-    return render_to_response('event/eduroam_list.html',
-                              {'from_country': from_country, 'to_country': to_country, 'countries': None,
-                               'country_name': country.name},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/eduroam_list.html', {'from_country': from_country, 'to_country': to_country,
+                                                       'countries': None, 'country_name': country.name})
 
 
 @ensure_csrf_cookie
@@ -138,11 +107,9 @@ def by_rp(request, pk):
             threshold = float(request.GET.get('threshold', 0.05))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
-    return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type,
-                               'threshold': threshold, 'default_min': default_min,
-                               'default_max': default_max, 'protocol': protocol},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/piechart.html', {'entity': entity, 'cross_type': cross_type, 'threshold': threshold,
+                                                   'default_min': default_min, 'default_max': default_max,
+                                                   'protocol': protocol})
 
 
 @ensure_csrf_cookie
@@ -172,11 +139,9 @@ def by_origin(request, pk):
             threshold = float(request.GET.get('threshold', 0.05))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
-    return render_to_response('event/piechart.html',
-                              {'entity': entity, 'cross_type': cross_type,
-                               'threshold': threshold, 'default_min': default_min,
-                               'default_max': default_max, 'protocol': protocol},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/piechart.html', {'entity': entity, 'cross_type': cross_type, 'threshold': threshold,
+                                                   'default_min': default_min, 'default_max': default_max,
+                                                   'protocol': protocol})
 
 
 @ensure_csrf_cookie
@@ -204,11 +169,8 @@ def to_realm(request, pk):
             threshold = float(request.GET.get('threshold', 0.05))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
-    return render_to_response('event/piechart.html',
-                              {'realm': realm, 'cross_type': cross_type,
-                               'threshold': threshold, 'default_min': default_min,
-                               'default_max': default_max},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/piechart.html', {'realm': realm, 'cross_type': cross_type, 'threshold': threshold,
+                                                   'default_min': default_min, 'default_max': default_max})
 
 
 @ensure_csrf_cookie
@@ -236,11 +198,8 @@ def from_realm(request, pk):
             threshold = float(request.GET.get('threshold', 0.05))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
-    return render_to_response('event/piechart.html',
-                              {'realm': realm, 'cross_type': cross_type,
-                               'threshold': threshold, 'default_min': default_min,
-                               'default_max': default_max},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/piechart.html', {'realm': realm, 'cross_type': cross_type, 'threshold': threshold,
+                                                   'default_min': default_min, 'default_max': default_max})
 
 
 def get_auth_flow_data(start_time, end_time, protocol):
@@ -344,7 +303,5 @@ def auth_flow(request, protocol=None):
             threshold = int(request.GET.get('threshold', 50))
         except ValueError:
             return HttpResponse('Argument threshold not a number.', content_type="text/html")
-    return render_to_response('event/sankey.html',
-                              {'default_min': default_min, 'default_max': default_max,
-                               "threshold": threshold, 'protocol': protocol},
-                              context_instance=RequestContext(request))
+    return render(request, 'event/sankey.html', {'default_min': default_min, 'default_max': default_max,
+                                                 'threshold': threshold, 'protocol': protocol})

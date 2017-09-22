@@ -1,8 +1,10 @@
-__author__ = 'lundberg'
+from __future__ import absolute_import
 
 from django.contrib import admin
-from apps.event.models import Country, Event, Entity, DailyEventAggregation
-from apps.event.models import EduroamEvent, EduroamRealm, DailyEduroamEventAggregation
+from flog.apps.event.models import Country, Event, Entity, DailyEventAggregation
+from flog.apps.event.models import EduroamEvent, EduroamRealm, DailyEduroamEventAggregation
+
+__author__ = 'lundberg'
 
 
 class CountryAdmin(admin.ModelAdmin):

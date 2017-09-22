@@ -1,6 +1,8 @@
 -r common.txt
-psycopg2==2.5
-raven==3.5.1
-django-dotenv==1.2
-python-memcached==1.54
-gunicorn
+psycopg2<2.8
+raven<6.3
+contextlib2<0.6
+django-dotenv<1.5
+python-memcached<1.59
+gunicorn<19.8
+futures<3.2

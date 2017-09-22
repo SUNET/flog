@@ -3,13 +3,14 @@ Created on Apr 13, 2012
 
 @author: leifj, lundberg
 """
+from __future__ import absolute_import
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.exceptions import ObjectDoesNotExist
-from apps.event.models import import_events
-from apps.event.models import Entity, EduroamRealm, Event, EduroamEvent
+from flog.apps.event.models import import_events
+from flog.apps.event.models import Entity, EduroamRealm, Event, EduroamEvent
 import json
 from datetime import datetime, timedelta
 

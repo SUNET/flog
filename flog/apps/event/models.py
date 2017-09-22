@@ -28,8 +28,8 @@ class Entity(models.Model):
 
 class Event(models.Model):
     ts = DateTimeField(db_index=True)
-    origin = ForeignKey(Entity, related_name='origin_events')
-    rp = ForeignKey(Entity, related_name='rp_events')
+    origin = ForeignKey(Entity, related_name='origin_events', on_delete=models.CASCADE)
+    rp = ForeignKey(Entity, related_name='rp_events', on_delete=models.CASCADE)
     protocol = SmallIntegerField(choices=((0, 'Unknown'),
                                           (1, 'WAYF'),
                                           (2, 'Discovery'),
@@ -99,8 +99,8 @@ class EduroamRealm(models.Model):
 class EduroamEvent(models.Model):
     ts = DateTimeField(db_index=True)
     version = CharField(max_length=10)
-    realm = ForeignKey(EduroamRealm, related_name='realm_events')
-    visited_country = ForeignKey(Country, related_name='country_events')
+    realm = ForeignKey(EduroamRealm, related_name='realm_events', on_delete=models.CASCADE)
+    visited_country = ForeignKey(Country, related_name='country_events', on_delete=models.CASCADE)
     visited_institution = ForeignKey(EduroamRealm, related_name='institution_events',
                                      blank=True, null=True, on_delete=models.SET_NULL)
     calling_station_id = CharField(max_length=128)
