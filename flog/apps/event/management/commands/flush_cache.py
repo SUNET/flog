@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+from __future__ import absolute_import
 
 from django.core.management.base import BaseCommand, CommandError
-from apps.event.views import flush_cache
+from flog.apps.event.views import flush_cache
+
+__author__ = 'lundberg'
 
 
 class Command(BaseCommand):

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.contrib import admin
 from flog.apps.event.models import Country, Event, Entity, DailyEventAggregation
 from flog.apps.event.models import EduroamEvent, EduroamRealm, DailyEduroamEventAggregation
+from flog.apps.event.models import OptimizedDailyEduroamEventAggregation
 
 __author__ = 'lundberg'
 
@@ -49,6 +50,14 @@ class DailyEduroamEventAggregationAdmin(admin.ModelAdmin):
     list_filter = ('realm_country', 'visited_country',)
 
 admin.site.register(DailyEduroamEventAggregation, DailyEduroamEventAggregationAdmin)
+
+
+class OptimizedDailyEduroamEventAggregationAdmin(admin.ModelAdmin):
+    date_hierarchy = 'date'
+    list_display = ('date', 'realm', 'visited_institution', 'calling_station_id_count')
+    list_filter = ('realm__country', 'visited_institution__country',)
+
+admin.site.register(OptimizedDailyEduroamEventAggregation, OptimizedDailyEduroamEventAggregationAdmin)
 
 
 class EduroamRealmAdmin(admin.ModelAdmin):

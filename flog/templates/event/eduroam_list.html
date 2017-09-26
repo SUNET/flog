@@ -20,7 +20,7 @@
 {% endblock %}
 
 {% block main %}
-    {% if not to_country and not from_country %}
+    {% if not country_name %}
         <div class="row">
             <div class="span8">
                 <h4>Authentication Flow</h4>
@@ -55,6 +55,14 @@
                     </ul>
                 </div>
             {% endif %}
+        </div>
+    {% endif %}
+    {% if country and not to_country and not from_country %}
+        <div class="row">
+            <div class="span5">
+                <p>No data found for {{ country_name }}.</p>
+                <a href="../">Back</a>
+            </div>
         </div>
     {% endif %}
     {% if countries %}

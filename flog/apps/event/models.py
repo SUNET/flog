@@ -104,7 +104,7 @@ class EduroamEvent(models.Model):
     visited_institution = ForeignKey(EduroamRealm, related_name='institution_events',
                                      blank=True, null=True, on_delete=models.SET_NULL)
     calling_station_id = CharField(max_length=128)
-    successful = BooleanField()
+    successful = BooleanField(db_index=True)
 
     def __unicode__(self):
         return '%s;%s;%s;%s;%s;%s;%s' % (self.ts, self.version, self.realm, self.visited_country,
@@ -125,6 +125,20 @@ class DailyEduroamEventAggregation(models.Model):
 
     def __unicode__(self):
         return '%s %s --> %s' % (self.date, self.realm, self.visited_institution)
+
+
+class OptimizedDailyEduroamEventAggregation(models.Model):
+
+    class Meta:
+        unique_together = ('date', 'realm', 'visited_institution')
+
+    date = DateField(db_index=True)
+    realm = ForeignKey(EduroamRealm, related_name='realm_daily_events', on_delete=models.CASCADE)
+    visited_institution = ForeignKey(EduroamRealm, related_name='institution_daily_events', on_delete=models.CASCADE)
+    calling_station_id_count = BigIntegerField(default=0)
+
+    def __unicode__(self):
+        return '%s %s -[%s]-> %s' % (self.date, self.realm, self.calling_station_id_count, self.visited_institution)
 
 
 def import_websso_events(event, batch):
@@ -158,7 +172,7 @@ def import_websso_events(event, batch):
             cache.set(origin_uri, origin)
 
         batch.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
-    except Exception, exc:
+    except Exception as exc:
         logging.error(exc)
     return batch
 
@@ -210,7 +224,7 @@ def import_eduroam_events(event, batch):
                                   visited_institution=visited_realm, calling_station_id=calling_station_id,
                                   successful=success))
         cache.set(calling_station_id, ts, 300)
-    except Exception, exc:
+    except Exception as exc:
         logging.error(exc)
     return batch
 
