@@ -25,7 +25,7 @@ class Command(BaseCommand):
                     'realm__country__name', 'calling_station_id')
             else:
                 try:
-                    days = options['n_or_all']
+                    days = int(options['n_or_all'])
                     today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
                     n_days_before = today - timedelta(days=days)
                     qs = EduroamEvent.objects.filter(ts__range=(n_days_before, today), successful=True).extra(
