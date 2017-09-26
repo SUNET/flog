@@ -1,25 +1,31 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+
+from __future__ import absolute_import
 
 from django.core.management.base import BaseCommand, CommandError
 from dateutil.tz import tzutc
-from apps.event.models import EduroamEvent, DailyEduroamEventAggregation
+from flog.apps.event.models import EduroamEvent, DailyEduroamEventAggregation
 from datetime import datetime, timedelta
+
+__author__ = 'lundberg'
 
 
 class Command(BaseCommand):
     args = 'n|all'
     help = 'Aggregates Eduroam events per calling station ID, per day'
 
+    def add_arguments(self, parser):
+        parser.add_argument('n_or_all', type=str)
+
     def handle(self, *args, **options):
         try:
-            if args[0] == 'all':
+            if options['n_or_all'] == 'all':
                 qs = EduroamEvent.objects.filter(successful=True).extra({'date': 'date(ts)'}).values(
                     'date', 'realm__realm', 'visited_institution__realm', 'visited_country__name',
                     'realm__country__name', 'calling_station_id')
             else:
                 try:
-                    days = int(args[0])
+                    days = options['n_or_all']
                     today = datetime.now(tzutc()).replace(hour=0, minute=0, second=0, microsecond=0)
                     n_days_before = today - timedelta(days=days)
                     qs = EduroamEvent.objects.filter(ts__range=(n_days_before, today), successful=True).extra(

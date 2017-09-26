@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+
+from __future__ import absolute_import
 
 import logging
-from apps.event.models import EduroamRealm, Country
-from django.core.management.base import NoArgsCommand, CommandError
+from flog.apps.event.models import EduroamRealm, Country
+from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 from xml.etree.ElementTree import iterparse
 
+__author__ = 'lundberg'
 
-class Command(NoArgsCommand):
+
+class Command(BaseCommand):
     can_import_settings = True
     help = 'Parses an xml meta data file and updates the existing realms.'
 
-    def handle_noargs(self, **options):
+    def handle(self, *args, **options):
         # Start by matching realms with unknown country to already existing countries
         default_country, created = Country.objects.get_or_create(country_code='0')
         for realm in default_country.country_realms.all():
@@ -33,8 +36,8 @@ class Command(NoArgsCommand):
                 event, root = context.next()
                 for event, elem in context:
                     if event == "end" and elem.tag == "institution":
-                        inst_realm = elem.findtext('inst_realm')
-                        country_code = elem.findtext('country')
+                        inst_realm = elem.findtext('inst_realm').lower()
+                        country_code = elem.findtext('country').lower()
                         org_name = elem.findtext('org_name')
                         try:
                             country, created = Country.objects.get_or_create(country_code=country_code)
