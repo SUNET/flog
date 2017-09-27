@@ -65,7 +65,7 @@ DATABASES = {
         'PASSWORD': environ['DB_PASSWORD'],
         'HOST': environ.get('DB_HOST', 'localhost'),
         'PORT': environ.get('DB_PORT', '5432'),
-        'CONN_MAX_AGE': environ.get('DB_CONN_MAX_AGE', '60'),
+        'CONN_MAX_AGE': int(environ.get('DB_CONN_MAX_AGE', '60')),
     }
 }
 ########## END DATABASE CONFIGURATION
