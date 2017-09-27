@@ -39,7 +39,6 @@ def flush_cache():
     try:
         cursor = connections['default'].cursor()
         cursor.execute('DELETE FROM flog_cache_table')
-        transaction.commit_unless_managed(using='default')
     except DatabaseError:
         pass  # No database cache used
 
