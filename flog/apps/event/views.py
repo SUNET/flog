@@ -11,6 +11,7 @@ import json
 import re
 from flog.apps.event.models import Entity, Event, DailyEventAggregation
 from flog.apps.event.models import Country, EduroamRealm, DailyEduroamEventAggregation
+from flog.apps.event.models import OptimizedDailyEduroamEventAggregation
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -71,10 +72,12 @@ def eduroam_realms(request, country_code=None):
         return render(request, 'event/eduroam_list.html', {'from_country': None, 'to_country': None,
                                                            'countries': countries, 'country_name': None})
     country = get_object_or_404(Country, country_code=country_code)
-    from_country = country.country_realms.filter(realm_events__successful=True).order_by('name', 'realm').\
-        values_list('id', 'realm', 'name').distinct()
-    to_country = EduroamRealm.objects.filter(realm_events__visited_country=country, realm_events__successful=True).\
-        order_by('name', 'realm').values_list('id', 'realm', 'name').distinct()
+    from_country = OptimizedDailyEduroamEventAggregation.objects.filter(realm__country=country).order_by(
+        'realm__realm').distinct('realm__realm').values_list(
+        'realm__id', 'realm__realm', 'realm__name')
+    to_country = OptimizedDailyEduroamEventAggregation.objects.filter(visited_institution__country=country).order_by(
+        'visited_institution__realm').distinct('visited_institution__realm').values_list(
+        'visited_institution__id', 'visited_institution__realm', 'visited_institution__name')
     return render(request, 'event/eduroam_list.html', {'from_country': from_country, 'to_country': to_country,
                                                        'countries': None, 'country_name': country.name})
 
@@ -227,57 +230,59 @@ def get_auth_flow_data(start_time, end_time, protocol):
     return data
 
 
-def get_eduroam_auth_flow_data(start_time, end_time, protocol):
-    data = cache.get('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol), False)
+def get_eduroam_auth_flow_data(start_time, end_time, protocol, country_code='se'):
+    for_country = get_object_or_404(Country, country_code=country_code)
+    data = cache.get('auth-flow-%s-%s-%s-%s' % (start_time.date(), end_time.date(), protocol, country_code), False)
     if not data:
-        qs = DailyEduroamEventAggregation.objects.all().filter(date__range=(start_time.date(), end_time.date())).values(
-            'realm', 'realm_country', 'visited_institution', 'visited_country').order_by().annotate(Count('id'))
+        qs = OptimizedDailyEduroamEventAggregation.objects.filter(
+            date__range=(start_time.date(), end_time.date())).values(
+            'realm', 'realm__realm', 'realm__country', 'realm__country__name', 'visited_institution', 'visited_institution__realm', 'visited_institution__country', 'visited_institution__country__name').order_by().annotate(
+            Sum('calling_station_id_count'))
         nodes = {}
         links = {}
-        regex = re.compile('Sweden')
         for e in qs:
-            from_country = e['realm_country']
-            to_country = e['visited_country']
-            if regex.match(from_country):  # We only want to show countries to swedish realms ...
-                from_realm = e['realm']
+            from_country = e['realm__country']
+            to_country = e['visited_institution__country']
+            if for_country.id == from_country:  # We only want to show countries to swedish realms ...
+                from_realm = e['realm__realm']
             else:
-                from_realm = from_country
-            if regex.match(to_country):  # ... and only swedish realms to other countries.
-                to_realm = e['visited_institution']
+                from_realm = e['realm__country__name']
+            if for_country.id == to_country:  # ... and only swedish realms to other countries.
+                to_realm = e['visited_institution__realm']
             else:
-                to_realm = to_country
+                to_realm = e['visited_institution__country__name']
             realm_keys = ('from-%s' % from_realm, 'to-%s' % to_realm)
-            country_keys = ('from-%s' % from_country, 'to-%s' % to_country)
+            country_keys = ('from-%s' % e['realm__country__name'], 'to-%s' % e['visited_institution__country__name'])
             links[realm_keys] = {
                 'source': realm_keys[0],
                 'target': realm_keys[1],
-                'value': e['id__count']
+                'value': e['calling_station_id_count__sum']
             }
             if (country_keys[0], realm_keys[0]) in links:
-                links[(country_keys[0], realm_keys[0])]['value'] += e['id__count']
+                links[(country_keys[0], realm_keys[0])]['value'] += e['calling_station_id_count__sum']
             else:
                 links[(country_keys[0], realm_keys[0])] = {
                     'source': country_keys[0],
                     'target': realm_keys[0],
-                    'value': e['id__count']
+                    'value': e['calling_station_id_count__sum']
                 }
             if (country_keys[1], realm_keys[1]) in links:
-                links[(country_keys[1], realm_keys[1])]['value'] += e['id__count']
+                links[(country_keys[1], realm_keys[1])]['value'] += e['calling_station_id_count__sum']
             else:
                 links[(country_keys[1], realm_keys[1])] = {
                     'source': realm_keys[1],
                     'target': country_keys[1],
-                    'value': e['id__count']
+                    'value': e['calling_station_id_count__sum']
                 }
             nodes[realm_keys[0]] = {'id': realm_keys[0], 'name': from_realm}
             nodes[realm_keys[1]] = {'id': realm_keys[1], 'name': to_realm}
-            nodes[country_keys[0]] = {'id': country_keys[0], 'name': from_country}
-            nodes[country_keys[1]] = {'id': country_keys[1], 'name': to_country}
+            nodes[country_keys[0]] = {'id': country_keys[0], 'name': e['realm__country__name']}
+            nodes[country_keys[1]] = {'id': country_keys[1], 'name': e['visited_institution__country__name']}
             data = {
                 'nodes': nodes.values(),
                 'links': links.values()
             }
-        cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
+        cache.set('auth-flow-%s-%s-%s-%s' % (start_time.date(), end_time.date(), protocol, country_code),
                   data, 60*60*24)  # 24h
     return data
 

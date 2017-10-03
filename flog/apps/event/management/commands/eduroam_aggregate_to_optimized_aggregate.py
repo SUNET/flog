@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 qs = DailyEduroamEventAggregation.objects.filter(date=date).values(
                     'realm', 'visited_institution').order_by().annotate(Count('calling_station_id'))
                 for event in qs:
-                    aggregated_event, created = OptimizedDailyEduroamEventAggregation.objects.get_or_create(
+                    OptimizedDailyEduroamEventAggregation.objects.get_or_create(
                         date=date,
                         realm=realm_qs.get(id=realm_map[event['realm']]),
                         visited_institution=realm_qs.get(id=realm_map[event['visited_institution']]),

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 from django.core.management.base import BaseCommand, CommandError
 from dateutil.tz import tzutc
-from flog.apps.event.models import EduroamEvent, DailyEduroamEventAggregation
-from datetime import datetime, timedelta
+from flog.apps.event.models import EduroamEvent, OptimizedDailyEduroamEventAggregation
+from datetime import datetime
 
 __author__ = 'lundberg'
 
@@ -20,32 +19,28 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-
             try:
-                start_date = datetime.strptime(options['start_date'], '%Y-%m-%d')
-                end_date = datetime.strptime(options['end_date'], '%Y-%m-%d')
-                qs = EduroamEvent.objects.filter(ts__range=(start_date, end_date), successful=True).extra(
-                    {'date': 'date(ts)'}).values('date', 'realm__realm', 'visited_institution__realm',
-                                                 'visited_country__name', 'realm__country__name',
-                                                 'calling_station_id')
+                start_date = datetime.strptime(options['start_date'], '%Y-%m-%d').replace(tzinfo=tzutc())
+                end_date = datetime.strptime(options['end_date'], '%Y-%m-%d').replace(tzinfo=tzutc())
+                date_qs = EduroamEvent.objects.filter(ts__range=(start_date, end_date), successful=True).dates(
+                    'ts', 'day', order='ASC')
+                OptimizedDailyEduroamEventAggregation.objects.filter(date__range=(start_date, end_date)).delete()
             except ValueError:
                 raise CommandError('%s is not an integer or "all".' % args[0])
 
-            for event_aggr in qs.iterator():
-                de, created = DailyEduroamEventAggregation.objects.get_or_create(
-                    date=event_aggr['date'],
-                    realm=event_aggr['realm__realm'],
-                    visited_institution=event_aggr['visited_institution__realm'],
-                    calling_station_id=event_aggr['calling_station_id'],
-                    defaults={
-                        'realm_country': event_aggr['realm__country__name'],
-                        'visited_country': event_aggr['visited_country__name']
-                    }
-                )
-                if not created:
-                    de.realm_country = event_aggr['realm__country__name']
-                    de.visited_country = event_aggr['visited_country__name']
-                    de.save()
+            for date in date_qs:
+                qs = EduroamEvent.objects.filter(ts__date=date, successful=True).distinct(
+                    'realm', 'visited_institution', 'calling_station_id')
+                for event in qs.iterator():
+                    aggregated_event, created = OptimizedDailyEduroamEventAggregation.objects.get_or_create(
+                        date=date,
+                        realm=event.realm,
+                        visited_institution=event.visited_institution,
+                        defaults={'calling_station_id_count': 1}
+                    )
+                    if not created:
+                        aggregated_event.calling_station_id_count += 1
+                        aggregated_event.save()
 
         except IndexError:
             raise CommandError('Please run the command as: \
