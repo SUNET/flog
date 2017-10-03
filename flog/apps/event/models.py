@@ -68,6 +68,7 @@ class Country(models.Model):
 
     class Meta:
         ordering = ['country_code']
+        verbose_name_plural = 'countries'
 
     country_code = CharField(max_length=3, unique=True)
     name = CharField(max_length=256, blank=True, default='Unknown')
