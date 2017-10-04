@@ -67,7 +67,7 @@ class DailyEventAggregation(models.Model):
 class Country(models.Model):
 
     class Meta:
-        ordering = ['country_code']
+        ordering = ['name']
         verbose_name_plural = 'countries'
 
     country_code = CharField(max_length=3, unique=True)
