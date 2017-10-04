@@ -36,17 +36,20 @@ class Command(BaseCommand):
                 event, root = context.next()
                 for event, elem in context:
                     if event == "end" and elem.tag == "institution":
-                        inst_realm = elem.findtext('inst_realm').lower()
-                        country_code = elem.findtext('country').lower()
+                        inst_realm = elem.findtext('inst_realm')
+                        country_code = elem.findtext('country')
                         org_name = elem.findtext('org_name')
-                        try:
-                            country, created = Country.objects.get_or_create(country_code=country_code)
-                            realm = EduroamRealm.objects.get(realm=inst_realm)
-                            realm.name = org_name
-                            realm.country = country
-                            realm.save()
-                        except ObjectDoesNotExist:
-                            pass
+                        if inst_realm and country_code:
+                            country_code = country_code.lower()
+                            inst_realm = inst_realm.lower()
+                            try:
+                                country, created = Country.objects.get_or_create(country_code=country_code)
+                                realm = EduroamRealm.objects.get(realm=inst_realm)
+                                realm.name = org_name
+                                realm.country = country
+                                realm.save()
+                            except ObjectDoesNotExist:
+                                pass
                     root.clear()
         except ImportError:
             raise CommandError('Could not import settings.py.')
