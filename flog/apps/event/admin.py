@@ -9,7 +9,10 @@ __author__ = 'lundberg'
 
 
 class CountryAdmin(admin.ModelAdmin):
-    pass
+
+    class Meta:
+        ordering = ['name']
+
 
 admin.site.register(Country, CountryAdmin)
 
@@ -19,6 +22,7 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('ts', 'origin', 'rp', 'protocol')
     list_filter = ('protocol', 'origin', 'rp')
 
+
 admin.site.register(Event, EventAdmin)
 
 
@@ -26,12 +30,15 @@ class DailyEventAggregationAdmin(admin.ModelAdmin):
     date_hierarchy = 'date'
     list_display = ('date', 'origin_name', 'rp_name', 'num_events', 'protocol')
     list_filter = ('protocol',)
+    search_fields = ('origin_name', 'rp_name',)
+
 
 admin.site.register(DailyEventAggregation, DailyEventAggregationAdmin)
 
 
 class EntityAdmin(admin.ModelAdmin):
     pass
+
 
 admin.site.register(Entity, EntityAdmin)
 
@@ -41,6 +48,7 @@ class EduroamEventAdmin(admin.ModelAdmin):
     list_display = ('ts', 'realm', 'visited_country', 'visited_institution', 'calling_station_id', )
     list_filter = ('successful',)
 
+
 admin.site.register(EduroamEvent, EduroamEventAdmin)
 
 
@@ -49,6 +57,7 @@ class DailyEduroamEventAggregationAdmin(admin.ModelAdmin):
     list_display = ('date', 'realm_country', 'realm', 'visited_country', 'visited_institution', 'calling_station_id')
     list_filter = ('realm_country', 'visited_country',)
 
+
 admin.site.register(DailyEduroamEventAggregation, DailyEduroamEventAggregationAdmin)
 
 
@@ -56,6 +65,8 @@ class OptimizedDailyEduroamEventAggregationAdmin(admin.ModelAdmin):
     date_hierarchy = 'date'
     list_display = ('date', 'realm', 'visited_institution', 'calling_station_id_count')
     list_filter = ('realm__country', 'visited_institution__country',)
+    search_fields = ('realm', 'visited_institution',)
+
 
 admin.site.register(OptimizedDailyEduroamEventAggregation, OptimizedDailyEduroamEventAggregationAdmin)
 
@@ -63,5 +74,7 @@ admin.site.register(OptimizedDailyEduroamEventAggregation, OptimizedDailyEduroam
 class EduroamRealmAdmin(admin.ModelAdmin):
     list_display = ('realm', 'name', 'country')
     list_filter = ('country',)
+    search_fields = ('realm', 'name',)
+
 
 admin.site.register(EduroamRealm, EduroamRealmAdmin)
