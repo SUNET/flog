@@ -15,6 +15,7 @@ from flog.apps.event.models import OptimizedDailyEduroamEventAggregation
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.db.models import F
 from django.db.models.aggregates import Count, Sum
 from django.core.cache import cache
 from django.db import connections, transaction, DatabaseError
@@ -106,7 +107,7 @@ def by_rp(request, pk):
         default_max = request.GET.get('max', 1)
         protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
         try:
-            threshold = float(request.GET.get('threshold', 0.05))
+            threshold = float(request.GET.get('threshold', 0.01))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render(request, 'event/piechart.html', {'entity': entity, 'cross_type': cross_type, 'threshold': threshold,
@@ -138,7 +139,7 @@ def by_origin(request, pk):
         default_max = request.GET.get('max', 1)
         protocol = get_protocol(request.GET.get('protocol', 'SAML2'))
         try:
-            threshold = float(request.GET.get('threshold', 0.05))
+            threshold = float(request.GET.get('threshold', 0.01))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render(request, 'event/piechart.html', {'entity': entity, 'cross_type': cross_type, 'threshold': threshold,
@@ -156,11 +157,15 @@ def to_realm(request, pk):
         data = cache.get('to-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
-            d = EduroamRealm.objects.filter(realm_events__visited_institution=realm,
-                                            realm_events__successful=True,
-                                            realm_events__ts__range=(start_time, end_time))
-            for e in d.annotate(count=Count('realm_events__id'),).order_by('-count').iterator():
-                data.append({'label': str(e), 'data': e.count, 'id': e.id})
+            qs = OptimizedDailyEduroamEventAggregation.objects.filter(visited_institution=realm,
+                                                                      date__range=(start_time, end_time)).values(
+                'realm__id', 'realm__realm').annotate(count=Sum('calling_station_id_count')).order_by('-count')
+            for item in qs:
+                data.append({
+                    'label': item['realm__realm'],
+                    'data': item['count'],
+                    'id': item['realm__id']
+                })
             cache.set('to-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()),
                       data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
@@ -168,7 +173,7 @@ def to_realm(request, pk):
         default_min = request.GET.get('min', 15)
         default_max = request.GET.get('max', 1)
         try:
-            threshold = float(request.GET.get('threshold', 0.05))
+            threshold = float(request.GET.get('threshold', 0.01))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render(request, 'event/piechart.html', {'realm': realm, 'cross_type': cross_type, 'threshold': threshold,
@@ -185,11 +190,16 @@ def from_realm(request, pk):
         data = cache.get('from-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()), False)
         if not data:
             data = []
-            d = EduroamRealm.objects.filter(institution_events__realm=realm,
-                                            institution_events__successful=True,
-                                            institution_events__ts__range=(start_time, end_time))
-            for e in d.annotate(count=Count('institution_events__id'),).order_by('-count').iterator():
-                data.append({'label': str(e), 'data': e.count, 'id': e.id})
+            qs = OptimizedDailyEduroamEventAggregation.objects.filter(realm=realm,
+                                                                      date__range=(start_time, end_time)).values(
+                'visited_institution__id', 'visited_institution__realm').annotate(
+                count=Sum('calling_station_id_count')).order_by('-count')
+            for item in qs:
+                data.append({
+                    'label': item['visited_institution__realm'],
+                    'data': item['count'],
+                    'id': item['visited_institution__id']
+                })
             cache.set('from-realm-%s-%s-%s' % (pk, start_time.date(), end_time.date()),
                       data, 60*60*24)  # 24h
         return HttpResponse(json.dumps(data), content_type="application/json")
@@ -197,7 +207,7 @@ def from_realm(request, pk):
         default_min = request.GET.get('min', 15)
         default_max = request.GET.get('max', 1)
         try:
-            threshold = float(request.GET.get('threshold', 0.05))
+            threshold = float(request.GET.get('threshold', 0.01))
         except ValueError:
             return HttpResponse('Argument threshold not a decimal number.', content_type="text/html")
     return render(request, 'event/piechart.html', {'realm': realm, 'cross_type': cross_type, 'threshold': threshold,

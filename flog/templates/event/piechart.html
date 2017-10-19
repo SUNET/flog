@@ -163,9 +163,9 @@ $(document).ready(function() {
     {% elif entity and cross_type == "origin" %}
         <a id="info" data-content="<p>This diagram show the requests sent by the relaying party during the chosen time span.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
     {% elif realm and cross_type == "to" %}
-        <a id="info" data-content="<p>This diagram show the successful authentications from realm {{ realm }} during the time span chosen.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
+        <a id="info" data-content="<p>This diagram show the successful authentications from realm {{ realm }} during the time span chosen.</p><p>A unique calling station id will only be counted once per day.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
     {% elif realm and cross_type == "from" %}
-        <a id="info" data-content="<p>This diagram show the successful authentications at realm {{ realm }} during the time span chosen.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
+        <a id="info" data-content="<p>This diagram show the successful authentications at realm {{ realm }} during the time span chosen.</p><p>A unique calling station id will only be counted once per day.</p>" title="What is this?" data-toggle="popover" href="#"><i class="icon-question-sign"></i></a>
     {% endif %}
 </div>
 <div class="rangeslider span7 offset2">
