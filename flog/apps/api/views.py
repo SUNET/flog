@@ -6,6 +6,7 @@ Created on Apr 13, 2012
 from __future__ import absolute_import
 
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.exceptions import ObjectDoesNotExist
@@ -13,6 +14,9 @@ from flog.apps.event.models import import_events
 from flog.apps.event.models import Entity, EduroamRealm, Event, EduroamEvent
 import json
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_whitespace(s):
@@ -23,6 +27,9 @@ def normalize_whitespace(s):
 def iprt(request):
     if request.method == "POST":
         import_events(request.body)
+        if settings.DEBUG:
+            logger.info('Got POST from {}'.format(request.get_host()))
+            logger.info('imported stuff')
         return HttpResponse("imported stuff", status=201)
     else:
         return HttpResponseBadRequest("what?")
