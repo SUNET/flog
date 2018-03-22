@@ -10,6 +10,11 @@ from common import *
 # Read .env from project root
 dotenv.read_dotenv(join(SITE_ROOT, '.env'))
 
+########## DEBUG CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
+DEBUG = bool(environ.get('DEBUG', ''))
+########## END DEBUG CONFIGURATION
+
 ########## PROJECT CONFIGURATION
 EDUROAM_META_DATA = environ.get('EDUROAM_META_DATA', '')
 ########## PROJECT CONFIGURATION
