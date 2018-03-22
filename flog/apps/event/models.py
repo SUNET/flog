@@ -235,10 +235,14 @@ def import_events(lines):
     for line in lines.split('\n'):
         # Batch create
         if len(websso_batch) > 100:
-            Event.objects.bulk_create(websso_batch)
+            objs = Event.objects.bulk_create(websso_batch)
+            logging.debug('websso bulk create > 100 lines')
+            logging.debug(objs)
             websso_batch = []
         if len(eduroam_batch) > 100:
-            EduroamEvent.objects.bulk_create(eduroam_batch)
+            objs = EduroamEvent.objects.bulk_create(eduroam_batch)
+            logging.debug('eduroam bulk create > 100 lines')
+            logging.debug(objs)
             eduroam_batch = []
         try:
             event = line.split(';')
@@ -250,6 +254,10 @@ def import_events(lines):
             logging.error(exc)
     # Batch create
     if len(websso_batch) > 0:
-        Event.objects.bulk_create(websso_batch)
+        objs = Event.objects.bulk_create(websso_batch)
+        logging.debug('websso bulk create end of request')
+        logging.debug(objs)
     if len(eduroam_batch) > 0:
-        EduroamEvent.objects.bulk_create(eduroam_batch)
+        objs = EduroamEvent.objects.bulk_create(eduroam_batch)
+        logging.debug('eduroam bulk create end of request')
+        logging.debug(objs)
