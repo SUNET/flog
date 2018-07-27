@@ -3,7 +3,7 @@
 """
 Created on Apr 12, 2013
 
-@author: lundberg@nordu.net
+@author: lundberg@sunet.se
 """
 
 import re
@@ -49,7 +49,7 @@ def post_data(url, data):
         r = urllib.urlopen(url, data)
         return r.read()
     except IOError as e:
-        print e
+        print(e)
 
 
 def format_timestamp(ts):
@@ -105,13 +105,13 @@ def batch_importer(f, url):
                 if eduroam_match:
                     batch.append(format_eduroam_data(eduroam_match))
             if len(batch) > 200:  # Approx. 60kb in file size
-                print post_data(url, '\n'.join(batch))
+                print(post_data(url, '\n'.join(batch)))
                 batch = []
         return post_data(url, '\n'.join(batch))
     except (KeyboardInterrupt, TypeError) as e:
         raise e
     finally:
-        print post_data(url, '\n'.join(batch))
+        print(post_data(url, '\n'.join(batch)))
 
 
 def main():
@@ -136,7 +136,7 @@ def main():
         elif args.daemon:
             # Starts the daemon reading the named pipe, posts every found line to URL
             if not args.pipe:
-                print 'Please set a path to the pipe using --pipe.'
+                print('Please set a path to the pipe using --pipe.')
                 sys.exit(0)
             context = daemon.DaemonContext(working_directory='/tmp')
             if args.foreground:
@@ -145,23 +145,24 @@ def main():
                 context.stderr = sys.stderr
             with context:
                 if args.foreground:
-                    print 'Reading from %s...' % args.pipe
+                    print('Reading from %s...' % args.pipe)
                 while True:
                     try:
                         f = open(args.pipe)
                         batch_importer(f, args.url)
                     except IOError as e:
                         if args.foreground:
-                            print e
+                            print(e)
         else:
             # Read from stdin and post every found line to URL
             batch_importer(args.infiles, args.url)
     except TypeError as e:
-        print 'Input not as expected.'
-        print e
+        print('Input not as expected.')
+        print(e)
     except KeyboardInterrupt:
         sys.exit(0)
     sys.exit(0)
+
 
 if __name__ == '__main__':
     main()
