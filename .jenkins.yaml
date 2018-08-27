@@ -1,0 +1,4 @@
+docker_name: "flog/flog_app"
+triggers:
+  cron: "@weekly"
+clean_workspace: true
