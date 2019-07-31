@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM debian:stable
 MAINTAINER Johan Lundberg "lundberg@sunet.se"
 
 COPY . /opt/flog/

@@ -10,11 +10,11 @@ apt-get update
 apt-get -y dist-upgrade
 apt-get -y install \
     build-essential \
-    python-dev \
+    python3-dev \
     python-virtualenv \
     libpq-dev
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # Create virtualenv
-virtualenv /opt/env
+virtualenv -p python3 /opt/env
