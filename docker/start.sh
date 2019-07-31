@@ -36,7 +36,7 @@ fi
 /opt/env/bin/pip freeze
 
 # Collect static files
-/opt/env/bin/python /opt/flog/manage.py collectstatic --noinput
+/opt/env/bin/django-admin collectstatic --noinput
 
 echo "Starting flog app"
 exec start-stop-daemon --chdir ${base_dir} \
