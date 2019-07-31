@@ -4,7 +4,7 @@ __author__ = 'lundberg'
 """Development settings and globals."""
 
 
-from common import *
+from flog.settings.common import *
 
 ########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug

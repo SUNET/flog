@@ -22,7 +22,7 @@ class Entity(models.Model):
     is_idp = BooleanField(default=False)
     is_rp = BooleanField(default=False)
     
-    def __unicode__(self):
+    def __str__(self):
         return self.uri
 
 
@@ -41,7 +41,7 @@ class Event(models.Model):
     Discovery = 2
     SAML2 = 3
     
-    def __unicode__(self):
+    def __str__(self):
         return '%s;%s;%s;%s;%s' % (self.ts, self.protocol, self.principal,
                                    self.origin, self.rp)
 
@@ -60,7 +60,7 @@ class DailyEventAggregation(models.Model):
                                           (3, 'SAML2')))
     num_events = BigIntegerField()
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %dx %s -[%d]-> %s' % (self.date, self.num_events, self.rp_name, self.protocol, self.origin_name)
 
 
@@ -73,7 +73,7 @@ class Country(models.Model):
     country_code = CharField(max_length=3, unique=True)
     name = CharField(max_length=256, blank=True, default='Unknown')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s (%s)' % (self.name, self.country_code)
 
 
@@ -93,7 +93,7 @@ class EduroamRealm(models.Model):
                          blank=True, null=True, on_delete=models.SET_NULL,
                          default=get_default_country)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.realm
 
 
@@ -107,7 +107,7 @@ class EduroamEvent(models.Model):
     calling_station_id = CharField(max_length=128)
     successful = BooleanField(db_index=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s;%s;%s;%s;%s;%s;%s' % (self.ts, self.version, self.realm, self.visited_country,
                                          self.visited_institution, self.calling_station_id, self.successful)
 
@@ -124,7 +124,7 @@ class DailyEduroamEventAggregation(models.Model):
     realm_country = CharField(max_length=200)
     visited_country = CharField(max_length=200)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s --> %s' % (self.date, self.realm, self.visited_institution)
 
 
@@ -138,7 +138,7 @@ class OptimizedDailyEduroamEventAggregation(models.Model):
     visited_institution = ForeignKey(EduroamRealm, related_name='institution_daily_events', on_delete=models.CASCADE)
     calling_station_id_count = BigIntegerField(default=0)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s -[%s]-> %s' % (self.date, self.realm, self.calling_station_id_count, self.visited_institution)
 
 

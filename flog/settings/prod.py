@@ -5,7 +5,7 @@ __author__ = 'lundberg'
 
 from os import environ
 import dotenv
-from common import *
+from flog.settings.common import *
 
 # Read .env from project root
 dotenv.read_dotenv(join(SITE_ROOT, '.env'))

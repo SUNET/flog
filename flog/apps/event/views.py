@@ -3,8 +3,6 @@ Created on Apr 13, 2012
 
 @author: leifj
 """
-from __future__ import absolute_import
-
 from dateutil import parser as dtparser
 from django.utils.timezone import localtime
 import json
@@ -232,7 +230,7 @@ def get_auth_flow_data(start_time, end_time, protocol):
             nodes[keys[0]] = {'id': keys[0], 'name': e['rp_name']}
             nodes[keys[1]] = {'id': keys[1], 'name': e['origin_name']}
         data = {
-            'nodes': nodes.values(),
+            'nodes': list(nodes.values()),
             'links': links
         }
         cache.set('auth-flow-%s-%s-%s' % (start_time.date(), end_time.date(), protocol),
@@ -246,8 +244,9 @@ def get_eduroam_auth_flow_data(start_time, end_time, protocol, country_code='se'
     if not data:
         qs = OptimizedDailyEduroamEventAggregation.objects.filter(
             date__range=(start_time.date(), end_time.date())).values(
-            'realm', 'realm__realm', 'realm__country', 'realm__country__name', 'visited_institution', 'visited_institution__realm', 'visited_institution__country', 'visited_institution__country__name').order_by().annotate(
-            Sum('calling_station_id_count'))
+            'realm', 'realm__realm', 'realm__country', 'realm__country__name', 'visited_institution',
+            'visited_institution__realm', 'visited_institution__country',
+            'visited_institution__country__name').order_by().annotate(Sum('calling_station_id_count'))
         nodes = {}
         links = {}
         for e in qs:
@@ -289,8 +288,8 @@ def get_eduroam_auth_flow_data(start_time, end_time, protocol, country_code='se'
             nodes[country_keys[0]] = {'id': country_keys[0], 'name': e['realm__country__name']}
             nodes[country_keys[1]] = {'id': country_keys[1], 'name': e['visited_institution__country__name']}
             data = {
-                'nodes': nodes.values(),
-                'links': links.values()
+                'nodes': list(nodes.values()),
+                'links': list(links.values())
             }
         cache.set('auth-flow-%s-%s-%s-%s' % (start_time.date(), end_time.date(), protocol, country_code),
                   data, 60*60*24)  # 24h
