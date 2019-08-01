@@ -1,16 +1,31 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
 
-Replace this with more appropriate tests for your application.
-"""
+from django.core.cache import cache
+from flog.testing import TemporaryDBTestcase
 
-from django.test import TestCase
+__author__ = 'lundberg'
 
+class ImportTests(TemporaryDBTestcase):
 
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
+    @classmethod
+    def setUpClass(cls):
+        super(ImportTests, cls).setUpClass()
+
+    @classmethod
+    def setUpTestData(cls):
+        # Set up data for the whole TestCase
+        pass
+
+    def setUp(self):
+        super(ImportTests, self).setUp()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(ImportTests, cls).tearDownClass()
+
+    def test1(self):
+        print(self.tmp_db)
+
+    def test2(self):
+        cache.set('test', 123)
+        print(cache.get('test'))
+
