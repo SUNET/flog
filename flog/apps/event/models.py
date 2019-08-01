@@ -12,6 +12,8 @@ from django.core.cache import cache
 from django.utils import dateparse
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class Entity(models.Model):
 
@@ -144,7 +146,7 @@ class OptimizedDailyEduroamEventAggregation(models.Model):
 
 def import_websso_events(event, batch):
     try:
-        logging.debug(event)
+        logger.debug(event)
         (ts, protocol, rp_uri, origin_uri, principal) = event
         p = Event.Unknown
         try:
@@ -174,13 +176,13 @@ def import_websso_events(event, batch):
 
         batch.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
     except Exception as exc:
-        logging.error(exc)
+        logger.error(exc)
     return batch
 
 
 def import_eduroam_events(event, batch):
     try:
-        logging.debug(event)
+        logger.debug(event)
         (ts, eduroam, version, event_realm, visited_country, visited_institution, calling_station_id, result) = event
 
         # Disregard failed authentications
@@ -226,7 +228,7 @@ def import_eduroam_events(event, batch):
                                   successful=success))
         cache.set(calling_station_id, ts, 300)
     except Exception as exc:
-        logging.error(exc)
+        logger.error(exc)
     return batch
 
 
@@ -236,13 +238,13 @@ def import_events(lines):
         # Batch create
         if len(websso_batch) > 100:
             objs = Event.objects.bulk_create(websso_batch)
-            logging.debug('websso bulk create > 100 lines')
-            logging.debug(objs)
+            logger.debug('websso bulk create > 100 lines')
+            logger.debug(objs)
             websso_batch = []
         if len(eduroam_batch) > 100:
             objs = EduroamEvent.objects.bulk_create(eduroam_batch)
-            logging.debug('eduroam bulk create > 100 lines')
-            logging.debug(objs)
+            logger.debug('eduroam bulk create > 100 lines')
+            logger.debug(objs)
             eduroam_batch = []
         try:
             event = line.split(';')
@@ -251,13 +253,13 @@ def import_events(lines):
             else:
                 websso_batch = import_websso_events(event, websso_batch)
         except (ValueError, IndexError) as exc:
-            logging.error(exc)
+            logger.error(exc)
     # Batch create
     if len(websso_batch) > 0:
         objs = Event.objects.bulk_create(websso_batch)
-        logging.debug('websso bulk create end of request')
-        logging.debug(objs)
+        logger.debug('websso bulk create end of request')
+        logger.debug(objs)
     if len(eduroam_batch) > 0:
         objs = EduroamEvent.objects.bulk_create(eduroam_batch)
-        logging.debug('eduroam bulk create end of request')
-        logging.debug(objs)
+        logger.debug('eduroam bulk create end of request')
+        logger.debug(objs)
