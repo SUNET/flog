@@ -4,6 +4,7 @@ Created on Apr 13, 2012
 @author: leifj
 """
 
+import six
 from django.db import models
 from django.db.models.fields import DateTimeField, DateField, URLField, SmallIntegerField,\
     CharField, BooleanField, BigIntegerField
@@ -233,8 +234,10 @@ def import_eduroam_events(event, batch):
 
 
 def import_events(lines):
+    if isinstance(lines, six.binary_type):
+        lines = lines.decode('utf-8')
     websso_batch, eduroam_batch = [], []
-    for line in lines.split('\n'):
+    for line in lines.split(u'\n'):
         # Batch create
         if len(websso_batch) > 100:
             objs = Event.objects.bulk_create(websso_batch)
@@ -247,7 +250,7 @@ def import_events(lines):
             logger.debug(objs)
             eduroam_batch = []
         try:
-            event = line.split(';')
+            event = line.split(u';')
             if event[1] == 'eduroam':
                 eduroam_batch = import_eduroam_events(event, eduroam_batch)
             else:
