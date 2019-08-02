@@ -64,3 +64,12 @@ class ImportTests(TemporaryDBTestcase):
         self.assertEqual(resp.status_code, 400)
         self.client.generic('POST', '/api/import', EDUROAM_EVENT_RAW_DATA)
         self.assertEqual(EduroamEvent.objects.count(), 10)
+
+    def test_import_eduroam_duplicates(self):
+        csi = self.random_string('csi')
+        entry = '2013-09-09 14:59:51+00:00;eduroam;1.0;example.se;se;example.com;{};OK'.format(csi)
+        entries = ''
+        for _ in range(10):
+            entries += entry + '\n'
+        self.client.generic('POST', '/api/import', entries)
+        self.assertEqual(EduroamEvent.objects.count(), 1)

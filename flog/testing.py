@@ -109,14 +109,14 @@ class MemcachedTemporaryInstance(object):
                                          stderr=subprocess.STDOUT)
         # Wait for the instance to be ready
         for i in range(100):
-            time.sleep(0.2)
-            self._conn = memcache.Client(servers='localhost')
+            time.sleep(1)
+            self._conn = memcache.Client(servers=['localhost:{}'.format(self._port)])
+            self._conn.set('operational', True)
             logger.info('Connected to temporary memcached instance: {}'.format(self._conn))
-            if self._conn is None:
-                continue
-            else:
-                if self._conn is not None:
-                    break
+            operational = self._conn.get('operational')
+            if operational:
+                break
+            continue
         else:
             self.shutdown()
             assert False, 'Cannot connect to the memcached test instance'
@@ -162,3 +162,6 @@ class TemporaryDBTestcase(TestCase):
             prefix = '-'.join([''.join([random.choice(hex_chars) for _ in range(2)]) for i in range(4)])
             h = ''.join([random.choice(hex_chars) for _ in range(62)])
             return '{}{}'.format(prefix, h)
+
+    def tearDown(self):
+        self.tmp_cache._conn.flush_all()
