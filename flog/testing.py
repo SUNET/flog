@@ -3,6 +3,7 @@ import atexit
 import logging
 import subprocess
 import time
+import random
 
 import psycopg2
 import memcache
@@ -151,3 +152,13 @@ class TemporaryDBTestcase(TestCase):
 
     def setUp(self):
         super(TemporaryDBTestcase, self).setUp()
+
+    @staticmethod
+    def random_string(t):
+        hex_chars = '0123456789abcdef'
+        if t == 'pn':
+            return ''.join([random.choice(hex_chars) for _ in range(64)])
+        elif t == 'csi':
+            prefix = '-'.join([''.join([random.choice(hex_chars) for _ in range(2)]) for i in range(4)])
+            h = ''.join([random.choice(hex_chars) for _ in range(62)])
+            return '{}{}'.format(prefix, h)

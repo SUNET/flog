@@ -7,13 +7,18 @@ Created on Apr 12, 2013
 """
 
 import re
-import urllib
 import argparse
 import sys
 import dateutil.parser
 import dateutil.tz
 import daemon
 import datetime
+try:
+    # Python 2
+    from urllib import urlopen
+except ImportError:
+    # Python 3
+    from urllib.request import urlopen
 
 # F-TICKS importer for flog
 #
@@ -46,7 +51,7 @@ eduroam = re.compile(r'''
 
 def post_data(url, data):
     try:
-        r = urllib.urlopen(url, data)
+        r = urlopen(url, data)
         return r.read()
     except IOError as e:
         print(e)
