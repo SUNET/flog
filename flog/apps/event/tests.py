@@ -10,6 +10,7 @@ from dateutil import tz
 from django.test.client import Client
 from django.core.management import call_command
 from six import StringIO
+from operator import itemgetter
 
 from flog.apps.event import models
 from flog.testing import TemporaryDBTestcase
@@ -58,7 +59,7 @@ class TestEvent(TemporaryDBTestcase):
                 'protocol': 3}
         resp = self.client.post('/event/websso/rp/{}/'.format(self.sp.pk), data=data)
         self.assertEqual(resp.json()[0]['data'], 1)
-        self.assertEqual(resp.json()[0]['id'], 1)
+        self.assertEqual(resp.json()[0]['id'], self.idp.pk)
         self.assertEqual(resp.json()[0]['label'], 'https://idp.example.com')
 
     def test_websso_get_origin_detail(self):
@@ -74,7 +75,7 @@ class TestEvent(TemporaryDBTestcase):
                 'protocol': 3}
         resp = self.client.post('/event/websso/origin/{}/'.format(self.idp.pk), data=data)
         self.assertEqual(resp.json()[0]['data'], 1)
-        self.assertEqual(resp.json()[0]['id'], 2)
+        self.assertEqual(resp.json()[0]['id'], self.sp.pk)
         self.assertEqual(resp.json()[0]['label'], 'https://sp.example.com')
 
     def test_get_websso_auth_flow(self):
@@ -186,19 +187,19 @@ class TestEduroamEvent(TemporaryDBTestcase):
         data = {'start': format_datetime_str(start_dt), 'end': format_datetime_str(datetime.utcnow()),
                 'protocol': 'eduroam'}
         resp = self.client.post('/event/eduroam/authentication-flow/', data=data)
-        self.assertEqual(resp.json()['nodes'],
-                         [
+        self.assertEqual(sorted(resp.json()['nodes'], key=itemgetter('id')),
+                         sorted([
                              {u'id': u'from-Sweden', u'name': u'Sweden'},
                              {u'id': u'to-Sweden', u'name': u'Sweden'},
                              {u'id': u'from-example.se', u'name': u'example.se'},
                              {u'id': u'to-example.se', u'name': u'example.se'},
                              {u'id': u'to-Denmark', u'name': u'Denmark'}
-                         ])
-        self.assertEqual(resp.json()['links'],
-                         [
+                         ], key=itemgetter('id')))
+        self.assertEqual(sorted(resp.json()['links'], key=itemgetter('source', 'target')),
+                         sorted([
                              {u'source': u'from-example.se', u'target': u'to-Denmark', u'value': 1},
                              {u'source': u'to-example.se', u'target': u'to-Sweden', u'value': 1},
                              {u'source': u'from-example.se', u'target': u'to-example.se', u'value': 1},
                              {u'source': u'to-Denmark', u'target': u'to-Denmark', u'value': 1},
                              {u'source': u'from-Sweden', u'target': u'from-example.se', u'value': 2}
-                         ])
+                         ], key=itemgetter('source', 'target')))
