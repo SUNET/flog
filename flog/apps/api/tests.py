@@ -1,16 +1,62 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
 
-Replace this with more appropriate tests for your application.
-"""
+from django.core.cache import cache
+from django.test import Client
 
-from django.test import TestCase
+from flog.apps.event.models import Event, EduroamEvent
+from flog.testing import TemporaryDBTestcase
+
+__author__ = 'lundberg'
+
+EVENT_RAW_DATA = """
+2013-05-16 12:51:51+00:00;3;https://idp.example.com/idp/shibboleth;https://sp1.example.com/Shibboleth.sso;{}
+2013-05-16 12:53:27+00:00;3;https://idp.example.com/idp/shibboleth;https://sp1.example.com/Shibboleth.sso;{}
+2013-05-16 14:26:46+00:00;3;https://login,example.com/idp/shibboleth;https://sp2.example.com/Shibboleth.sso;{}
+2013-05-16 16:50:02+00:00;3;https://login,example.com/idp/shibboleth;https://sp2.example.com/Shibboleth.sso;{}
+2013-05-16 19:41:25+00:00;3;https://login,example.com/shibboleth;https://sp2.example.com/Shibboleth.sso;{}
+2013-05-17 00:01:16+00:00;3;https://proxy,example.com/idp/shibboleth;https://sp3.example.com/Shibboleth.sso;{}
+2013-05-17 00:01:38+00:00;3;https://proxy,example.com/idp/shibboleth;https://sp3.example.com/Shibboleth.sso;{}
+2013-05-17 00:10:29+00:00;3;https://proxy,example.com/idp/shibboleth;https://sp3.example.com/Shibboleth.sso;{}
+2013-05-17 00:19:48+00:00;3;https://user.example.com/idp/shibboleth;https://sp3.example.com/Shibboleth.sso;{}
+2013-05-17 07:12:32+00:00;3;https://user.example.com/idp/shibboleth;https://sp4.example.com/aws-sp;{}
+""".format(*[TemporaryDBTestcase.random_string('pn') for _ in range(10)])
+
+EDUROAM_EVENT_RAW_DATA = """
+2013-09-09 14:59:51+00:00;eduroam;1.0;example.se;se;example.com;{};OK
+2013-09-09 14:59:54+00:00;eduroam;1.0;example.se;se;example.com;{};OK
+2013-09-09 15:00:35+00:00;eduroam;1.0;example.se;se;example.com;{};OK
+2013-09-09 15:00:35+00:00;eduroam;1.0;example.se;se;example.org;{};OK
+2013-09-09 15:00:53+00:00;eduroam;1.0;example.fi;fi;example.org;{};OK
+2013-09-09 15:00:56+00:00;eduroam;1.0;example.fi;fi;example.org;{};OK
+2013-09-09 15:02:08+00:00;eduroam;1.0;example.fi;fi;example.net;{};OK
+2013-09-09 15:02:33+00:00;eduroam;1.0;example.dk;dk;example.net;{};OK
+2013-09-09 15:03:25+00:00;eduroam;1.0;example.dk;dk;example.net;{};OK
+2013-09-09 15:03:27+00:00;eduroam;1.0;example.dk;dk;example.net;{};OK
+""".format(*[TemporaryDBTestcase.random_string('csi') for _ in range(10)])
 
 
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
+class ImportTests(TemporaryDBTestcase):
+
+    def setUp(self):
+        super(ImportTests, self).setUp()
+        self.client = Client()
+
+    def test_import_websso(self):
+        resp = self.client.get('/api/import')
+        self.assertEqual(resp.status_code, 400)
+        self.client.generic('POST', '/api/import', EVENT_RAW_DATA)
+        self.assertEqual(Event.objects.count(), 10)
+
+    def test_import_eduroam(self):
+        resp = self.client.get('/api/import')
+        self.assertEqual(resp.status_code, 400)
+        self.client.generic('POST', '/api/import', EDUROAM_EVENT_RAW_DATA)
+        self.assertEqual(EduroamEvent.objects.count(), 10)
+
+    def test_import_eduroam_duplicates(self):
+        csi = self.random_string('csi')
+        entry = '2013-09-09 14:59:51+00:00;eduroam;1.0;example.se;se;example.com;{};OK'.format(csi)
+        entries = ''
+        for _ in range(10):
+            entries += entry + '\n'
+        self.client.generic('POST', '/api/import', entries)
+        self.assertEqual(EduroamEvent.objects.count(), 1)

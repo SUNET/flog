@@ -1,4 +1,26 @@
-docker_name: "flog/flog_app"
+builders:
+  - script
 triggers:
   cron: "@weekly"
+pre_build_script:
+  - "docker pull docker.sunet.se/library/postgres-9.6:latest"
+  - "docker pull docker.sunet.se/library/memcached:latest"
+script:
+  - "python3.7 -m venv venv"
+  - ". venv/bin/activate"
+  - "pip install -U setuptools wheel"
+  - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
+  - "pip freeze"
+  - "python manage.py test --settings=flog.settings.testing"
 clean_workspace: true
+
+extra_jobs:
+  - name: flog-docker
+    builders:
+      - docker
+    docker_name: flog/flog_app
+    triggers:
+      github_push: false
+      cron: null
+    upstream:
+      - flog

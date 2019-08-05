@@ -4,6 +4,7 @@ Created on Apr 13, 2012
 @author: leifj
 """
 
+import six
 from django.db import models
 from django.db.models.fields import DateTimeField, DateField, URLField, SmallIntegerField,\
     CharField, BooleanField, BigIntegerField
@@ -11,6 +12,8 @@ from django.db.models.fields.related import ForeignKey
 from django.core.cache import cache
 from django.utils import dateparse
 import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Entity(models.Model):
@@ -22,7 +25,7 @@ class Entity(models.Model):
     is_idp = BooleanField(default=False)
     is_rp = BooleanField(default=False)
     
-    def __unicode__(self):
+    def __str__(self):
         return self.uri
 
 
@@ -41,7 +44,7 @@ class Event(models.Model):
     Discovery = 2
     SAML2 = 3
     
-    def __unicode__(self):
+    def __str__(self):
         return '%s;%s;%s;%s;%s' % (self.ts, self.protocol, self.principal,
                                    self.origin, self.rp)
 
@@ -60,7 +63,7 @@ class DailyEventAggregation(models.Model):
                                           (3, 'SAML2')))
     num_events = BigIntegerField()
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %dx %s -[%d]-> %s' % (self.date, self.num_events, self.rp_name, self.protocol, self.origin_name)
 
 
@@ -73,7 +76,7 @@ class Country(models.Model):
     country_code = CharField(max_length=3, unique=True)
     name = CharField(max_length=256, blank=True, default='Unknown')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s (%s)' % (self.name, self.country_code)
 
 
@@ -93,7 +96,7 @@ class EduroamRealm(models.Model):
                          blank=True, null=True, on_delete=models.SET_NULL,
                          default=get_default_country)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.realm
 
 
@@ -107,7 +110,7 @@ class EduroamEvent(models.Model):
     calling_station_id = CharField(max_length=128)
     successful = BooleanField(db_index=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s;%s;%s;%s;%s;%s;%s' % (self.ts, self.version, self.realm, self.visited_country,
                                          self.visited_institution, self.calling_station_id, self.successful)
 
@@ -124,7 +127,7 @@ class DailyEduroamEventAggregation(models.Model):
     realm_country = CharField(max_length=200)
     visited_country = CharField(max_length=200)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s --> %s' % (self.date, self.realm, self.visited_institution)
 
 
@@ -138,13 +141,13 @@ class OptimizedDailyEduroamEventAggregation(models.Model):
     visited_institution = ForeignKey(EduroamRealm, related_name='institution_daily_events', on_delete=models.CASCADE)
     calling_station_id_count = BigIntegerField(default=0)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s -[%s]-> %s' % (self.date, self.realm, self.calling_station_id_count, self.visited_institution)
 
 
 def import_websso_events(event, batch):
     try:
-        logging.debug(event)
+        logger.debug(event)
         (ts, protocol, rp_uri, origin_uri, principal) = event
         p = Event.Unknown
         try:
@@ -174,13 +177,13 @@ def import_websso_events(event, batch):
 
         batch.append(Event(ts=ts, origin=origin, rp=rp, protocol=p, principal=principal))
     except Exception as exc:
-        logging.error(exc)
+        logger.error(exc)
     return batch
 
 
 def import_eduroam_events(event, batch):
     try:
-        logging.debug(event)
+        logger.debug(event)
         (ts, eduroam, version, event_realm, visited_country, visited_institution, calling_station_id, result) = event
 
         # Disregard failed authentications
@@ -226,38 +229,40 @@ def import_eduroam_events(event, batch):
                                   successful=success))
         cache.set(calling_station_id, ts, 300)
     except Exception as exc:
-        logging.error(exc)
+        logger.error(exc)
     return batch
 
 
 def import_events(lines):
+    if isinstance(lines, six.binary_type):
+        lines = lines.decode('utf-8')
     websso_batch, eduroam_batch = [], []
-    for line in lines.split('\n'):
+    for line in lines.split(u'\n'):
         # Batch create
         if len(websso_batch) > 100:
             objs = Event.objects.bulk_create(websso_batch)
-            logging.debug('websso bulk create > 100 lines')
-            logging.debug(objs)
+            logger.debug('websso bulk create > 100 lines')
+            logger.debug(objs)
             websso_batch = []
         if len(eduroam_batch) > 100:
             objs = EduroamEvent.objects.bulk_create(eduroam_batch)
-            logging.debug('eduroam bulk create > 100 lines')
-            logging.debug(objs)
+            logger.debug('eduroam bulk create > 100 lines')
+            logger.debug(objs)
             eduroam_batch = []
         try:
-            event = line.split(';')
+            event = line.split(u';')
             if event[1] == 'eduroam':
                 eduroam_batch = import_eduroam_events(event, eduroam_batch)
             else:
                 websso_batch = import_websso_events(event, websso_batch)
         except (ValueError, IndexError) as exc:
-            logging.error(exc)
+            logger.error(exc)
     # Batch create
     if len(websso_batch) > 0:
         objs = Event.objects.bulk_create(websso_batch)
-        logging.debug('websso bulk create end of request')
-        logging.debug(objs)
+        logger.debug('websso bulk create end of request')
+        logger.debug(objs)
     if len(eduroam_batch) > 0:
         objs = EduroamEvent.objects.bulk_create(eduroam_batch)
-        logging.debug('eduroam bulk create end of request')
-        logging.debug(objs)
+        logger.debug('eduroam bulk create end of request')
+        logger.debug(objs)

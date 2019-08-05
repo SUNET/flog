@@ -3,7 +3,7 @@ __author__ = 'lundberg'
 
 """Development settings and globals."""
 
-from dev import *
+from flog.settings.dev import *
 
 
 ########## DATABASE CONFIGURATION
@@ -14,7 +14,7 @@ DATABASES = {
         'NAME': 'flog',
         'USER': 'flog',
         'PASSWORD': 'docker',
-        'HOST': 'db.flog.docker',
+        'HOST': 'flog-db',
         'PORT': '5432'
     }
 }
