@@ -36,22 +36,9 @@ EDUROAM_EVENT_RAW_DATA = """
 
 class ImportTests(TemporaryDBTestcase):
 
-    @classmethod
-    def setUpClass(cls):
-        super(ImportTests, cls).setUpClass()
-
-    @classmethod
-    def setUpTestData(cls):
-        # Set up data for the whole TestCase
-        pass
-
     def setUp(self):
         super(ImportTests, self).setUp()
         self.client = Client()
-
-    @classmethod
-    def tearDownClass(cls):
-        super(ImportTests, cls).tearDownClass()
 
     def test_import_websso(self):
         resp = self.client.get('/api/import')
