@@ -29,3 +29,5 @@ CACHES = {
 RAVEN_CONFIG = {
     'dsn': '',
 }
+
+LOGGING = None
