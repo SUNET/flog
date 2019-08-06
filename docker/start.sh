@@ -20,7 +20,7 @@ worker_timeout=${worker_timeout-30}
 mkdir -p ${state_dir} ${log_dir}
 
 # set PYTHONPATH if it is not already set using Docker environment
-export PYTHONPATH=${PYTHONPATH-${project_dir}}
+export PYTHONPATH=${PYTHONPATH-${base_dir}}
 
 # set Django settings module
 export DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE-"flog.settings.prod"}
