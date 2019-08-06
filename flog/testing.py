@@ -8,6 +8,8 @@ import random
 import psycopg2
 import memcache
 from django.test import TestCase
+from django.test.runner import DiscoverRunner
+from django.core.cache import cache
 
 __author__ = 'lundberg'
 
@@ -138,9 +140,6 @@ class MemcachedTemporaryInstance(object):
 
 class TemporaryDBTestcase(TestCase):
 
-    tmp_db = PostgresqlTemporaryInstance.get_instance()
-    tmp_cache = MemcachedTemporaryInstance.get_instance()
-
     @classmethod
     def setUpClass(cls):
         super(TemporaryDBTestcase, cls).setUpClass()
@@ -164,4 +163,28 @@ class TemporaryDBTestcase(TestCase):
             return '{}{}'.format(prefix, h)
 
     def tearDown(self):
-        self.tmp_cache._conn.flush_all()
+        cache.clear()
+
+
+class TemporaryDBTestRunner(DiscoverRunner):
+
+    def __init__(self, pattern=None, top_level=None, verbosity=1,
+                 interactive=True, failfast=False, keepdb=False,
+                 reverse=False, debug_mode=False, debug_sql=False, parallel=0,
+                 tags=None, exclude_tags=None, **kwargs):
+        self.tmp_db = None
+        self.tmp_cache = None
+        super(TemporaryDBTestRunner, self).__init__(pattern=pattern, top_level=top_level, verbosity=verbosity,
+                                                    interactive=interactive, failfast=failfast, keepdb=keepdb,
+                                                    reverse=reverse, debug_mode=debug_mode, debug_sql=debug_sql,
+                                                    parallel=parallel, tags=tags, exclude_tags=exclude_tags, **kwargs)
+
+    def setup_test_environment(self, **kwargs):
+        self.tmp_db = PostgresqlTemporaryInstance.get_instance()
+        self.tmp_cache = MemcachedTemporaryInstance.get_instance()
+        super(TemporaryDBTestRunner, self).setup_test_environment(**kwargs)
+
+    def teardown_test_environment(self, **kwargs):
+        self.tmp_db.shutdown()
+        self.tmp_cache.shutdown()
+        super(TemporaryDBTestRunner, self).teardown_test_environment(**kwargs)
