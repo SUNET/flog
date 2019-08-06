@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 
 from flog.testing import PostgresqlTemporaryInstance, MemcachedTemporaryInstance
 from flog.settings.prod import *
@@ -35,4 +36,16 @@ RAVEN_CONFIG = {
     'dsn': '',
 }
 
-LOGGING = None
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+        }
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG'
+    }
+}

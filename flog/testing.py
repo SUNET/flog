@@ -120,11 +120,10 @@ class MemcachedTemporaryInstance(object):
             time.sleep(0.2)
             self._conn = memcache.Client(servers=['localhost:{}'.format(self._port)])
             self._conn.set('operational', True)
-            logger.info('Connected to temporary memcached instance: {}'.format(self._conn))
             operational = self._conn.get('operational')
             if operational:
+                logger.info('Connected to temporary memcached instance: {}'.format(self._conn))
                 break
-            continue
         else:
             self.shutdown()
             assert False, 'Cannot connect to the memcached test instance'
