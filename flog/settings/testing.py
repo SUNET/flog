@@ -7,6 +7,8 @@ __author__ = 'lundberg'
 
 DEBUG = True
 
+TEST_RUNNER = 'flog.testing.TemporaryDBTestRunner'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
