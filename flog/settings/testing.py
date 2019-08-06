@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
+from flog.testing import PostgresqlTemporaryInstance, MemcachedTemporaryInstance
 from flog.settings.prod import *
 
 __author__ = 'lundberg'
 
-
-DEBUG = True
+TMP_DB = PostgresqlTemporaryInstance.get_instance()
+TMP_CACHE = MemcachedTemporaryInstance.get_instance()
 
 TEST_RUNNER = 'flog.testing.TemporaryDBTestRunner'
+
+DEBUG = True
 
 DATABASES = {
     'default': {
@@ -16,7 +19,7 @@ DATABASES = {
         'USER': 'flog',
         'PASSWORD': 'docker',
         'HOST': 'localhost',
-        'PORT': '5432',
+        'PORT': TMP_DB.port,
         'CONN_MAX_AGE': 60,
     }
 }
@@ -24,7 +27,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': 'localhost',
+        'LOCATION': 'localhost:{}'.format(TMP_CACHE.port),
     }
 }
 

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 import atexit
 import logging
+import random
 import subprocess
 import time
-import random
 
-import psycopg2
 import memcache
+import psycopg2
+from django.conf import settings
+from django.core.cache import cache
+from django.db import connections, DatabaseError
 from django.test import TestCase
 from django.test.runner import DiscoverRunner
-from django.core.cache import cache
 
 __author__ = 'lundberg'
 
@@ -34,7 +36,7 @@ class PostgresqlTemporaryInstance(object):
         return cls._instance
 
     def __init__(self):
-        self._port = 5432
+        self._port = random.randint(40000, 50000)
         logger.debug('Starting temporary postgresql instance on port {}'.format(self._port))
 
         self._process = subprocess.Popen(['docker', 'run', '--rm',
@@ -45,8 +47,8 @@ class PostgresqlTemporaryInstance(object):
                                          stdout=open('/tmp/postgres-temp.log', 'wb'),
                                          stderr=subprocess.STDOUT)
         # Wait for the instance to be ready
-        for i in range(10):
-            time.sleep(1)
+        for i in range(100):
+            time.sleep(0.2)
             try:
                 self._conn = psycopg2.connect(user='postgres', password='docker', host='localhost', port=self._port)
                 self._conn.set_session(autocommit=True)
@@ -68,6 +70,10 @@ class PostgresqlTemporaryInstance(object):
         else:
             self.shutdown()
             assert False, 'Cannot connect to the postgres instance'
+
+    @property
+    def port(self):
+        return self._port
 
     def close(self):
         if self._conn:
@@ -101,7 +107,7 @@ class MemcachedTemporaryInstance(object):
         return cls._instance
 
     def __init__(self):
-        self._port = 11211
+        self._port = random.randint(40000, 50000)
         logger.debug('Starting temporary memcached instance on port {}'.format(self._port))
         self._process = subprocess.Popen(['docker', 'run', '--rm',
                                           '-p', '{!s}:11211'.format(self._port),
@@ -111,7 +117,7 @@ class MemcachedTemporaryInstance(object):
                                          stderr=subprocess.STDOUT)
         # Wait for the instance to be ready
         for i in range(100):
-            time.sleep(1)
+            time.sleep(0.2)
             self._conn = memcache.Client(servers=['localhost:{}'.format(self._port)])
             self._conn.set('operational', True)
             logger.info('Connected to temporary memcached instance: {}'.format(self._conn))
@@ -122,6 +128,10 @@ class MemcachedTemporaryInstance(object):
         else:
             self.shutdown()
             assert False, 'Cannot connect to the memcached test instance'
+
+    @property
+    def port(self):
+        return self._port
 
     def close(self):
         if self._conn:
@@ -162,29 +172,25 @@ class TemporaryDBTestcase(TestCase):
             h = ''.join([random.choice(hex_chars) for _ in range(62)])
             return '{}{}'.format(prefix, h)
 
-    def tearDown(self):
+    # Clear cache for sqlite (workaround)
+    @staticmethod
+    def flush_cache():
+        # This works as advertised on the memcached cache:
         cache.clear()
+        # This manually purges the SQLite/postgres cache:
+        try:
+            cursor = connections['default'].cursor()
+            cursor.execute('DELETE FROM flog_cache_table')
+        except DatabaseError:
+            pass  # No database cache used
+
+    def tearDown(self):
+        self.flush_cache()
 
 
 class TemporaryDBTestRunner(DiscoverRunner):
 
-    def __init__(self, pattern=None, top_level=None, verbosity=1,
-                 interactive=True, failfast=False, keepdb=False,
-                 reverse=False, debug_mode=False, debug_sql=False, parallel=0,
-                 tags=None, exclude_tags=None, **kwargs):
-        self.tmp_db = None
-        self.tmp_cache = None
-        super(TemporaryDBTestRunner, self).__init__(pattern=pattern, top_level=top_level, verbosity=verbosity,
-                                                    interactive=interactive, failfast=failfast, keepdb=keepdb,
-                                                    reverse=reverse, debug_mode=debug_mode, debug_sql=debug_sql,
-                                                    parallel=parallel, tags=tags, exclude_tags=exclude_tags, **kwargs)
-
-    def setup_test_environment(self, **kwargs):
-        self.tmp_db = PostgresqlTemporaryInstance.get_instance()
-        self.tmp_cache = MemcachedTemporaryInstance.get_instance()
-        super(TemporaryDBTestRunner, self).setup_test_environment(**kwargs)
-
     def teardown_test_environment(self, **kwargs):
-        self.tmp_db.shutdown()
-        self.tmp_cache.shutdown()
         super(TemporaryDBTestRunner, self).teardown_test_environment(**kwargs)
+        settings.TMP_DB.shutdown()
+        settings.TMP_CACHE.shutdown()
