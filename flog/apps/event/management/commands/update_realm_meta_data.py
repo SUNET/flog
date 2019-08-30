@@ -33,7 +33,6 @@ class Command(BaseCommand):
             with open(meta_data) as source:
                 context = iter(iterparse(source, events=("start", "end")))
                 # get the root element
-                event, root = context.next()
                 for event, elem in context:
                     if event == "end" and elem.tag == "institution":
                         inst_realm = elem.findtext('inst_realm')
@@ -50,10 +49,10 @@ class Command(BaseCommand):
                                 realm.save()
                             except ObjectDoesNotExist:
                                 pass
-                    root.clear()
         except ImportError:
             raise CommandError('Could not import settings.py.')
-        except IOError:
+        except IOError as e:
+            logging.error(e)
             raise CommandError('Could not open meta data file: %s' % meta_data)
         except DatabaseError as e:
             # Probably a country code that is not a country code.
