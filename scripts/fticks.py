@@ -56,7 +56,7 @@ def post_data(url, data):
 
 def post_json(url, data):
     try:
-        req = urllib.request.Request(url)
+        req = urllib.request.Request(url,method='POST')
         req.add_header('Content-Type', 'application/json; charset=utf-8')
         jsondata = json.dumps(data)
         jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
