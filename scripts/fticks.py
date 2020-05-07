@@ -1,26 +1,24 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 """
 Created on Apr 12, 2013
 
-@author: lundberg@sunet.se
+@author: lundberg@nordu.net
+@author: leifj@sunet.se - updated to json export
 """
 
 import re
+import urllib
 import argparse
 import sys
 import dateutil.parser
 import dateutil.tz
 import daemon
 import datetime
-try:
-    # Python 2
-    from urllib import urlopen
-except ImportError:
-    # Python 3
-    from urllib.request import urlopen
+import urllib.request
+import json
 
-# F-TICKS importer for flog
+# F-TICKS importer for flog and telegraf
 #
 # Requires python-dateutil and python-daemon.
 
@@ -51,11 +49,22 @@ eduroam = re.compile(r'''
 
 def post_data(url, data):
     try:
-        r = urlopen(url, data)
+        r = urllib.request.urlopen(url, data)
         return r.read()
     except IOError as e:
         print(e)
 
+def post_json(url, data):
+    try:
+        req = urllib.request.Request(url)
+        req.add_header('Content-Type', 'application/json; charset=utf-8')
+        jsondata = json.dumps(data)
+        jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
+        req.add_header('Content-Length', len(jsondataasbytes))
+        response = urllib.request.urlopen(req, jsondataasbytes)
+        return response
+    except IOError as e:
+        print(e)
 
 def format_timestamp(ts):
     try:
@@ -66,6 +75,11 @@ def format_timestamp(ts):
         dt.replace(tzinfo=dateutil.tz.tzutc())
     return dt.isoformat(sep=' ')
 
+def format_websso_json(m):
+    return dict(ts=format_timestamp(m.group('ts')),
+                tp='SAML2',
+                rp=''.join(m.group('rp').split()),
+                ap=''.join(m.group('ap').split()))
 
 def format_websso_data(m):
     data = [
@@ -97,6 +111,34 @@ def format_eduroam_data(m):
     ]
     return ';'.join(data)
 
+def format_eduroam_json(m):
+    try:
+        # Legacy rsyslog date format "Mar  5 15:22:15"
+        ts = format_timestamp(' '.join(m.group('meta').split()[:3]))
+    except ValueError:
+        # New rsyslog date format "2014-03-06T14:59:04.677583+00:00"
+        ts = format_timestamp(m.group('meta').split()[0])
+    return dict(ts=ts,
+                tp='eduroam',
+                ve=m.group('version'),
+                rm=m.group('realm'),
+                vc=m.group('visited_country'),
+                vi=m.group('visited_institution'),
+                ci=m.group('calling_station_id'),
+                rs=m.group('result'))
+
+def json_importer(f, url):
+    try:
+        for line in f:
+            websso_match = websso.search(line)
+            if websso_match:
+                post_json(url, format_websso_json(websso_match))
+            else:
+                eduroam_match = eduroam.search(line)
+                if eduroam_match:
+                    post_json(url, format_eduroam_json(eduroam_match))
+    except (KeyboardInterrupt, TypeError) as e:
+        raise e
 
 def batch_importer(f, url):
     batch = []
@@ -128,6 +170,8 @@ def main():
                         action='store_true')
     parser.add_argument('-d', '--daemon', help='Run in daemon mode and read from named pipe [PIPE]', default=False,
                         action='store_true')
+    parser.add_argument('-j', '--json', help='POST json-data intead of flog format', default=False,
+                        action='store_true')
     parser.add_argument('-p', '--pipe', help='Named pipe', type=str)
     parser.add_argument('-f', '--foreground', help='Run daemon in foreground', default=False,
                         action='store_true')
@@ -137,7 +181,10 @@ def main():
         if args.batch:
             # Open files and post all found F-TICKS lines to URL
             for f in args.infiles:
-                batch_importer(f, args.url)
+                if args.json:
+                   json_importer(f, args.url)
+                else:
+                   batch_importer(f, args.url)
         elif args.daemon:
             # Starts the daemon reading the named pipe, posts every found line to URL
             if not args.pipe:
@@ -154,7 +201,10 @@ def main():
                 while True:
                     try:
                         f = open(args.pipe)
-                        batch_importer(f, args.url)
+                        if args.json:
+                           json_importer(f, args.url)
+                        else:
+                           batch_importer(f, args.url)
                     except IOError as e:
                         if args.foreground:
                             print(e)
@@ -167,7 +217,6 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
     sys.exit(0)
-
 
 if __name__ == '__main__':
     main()
